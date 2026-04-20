@@ -24,10 +24,12 @@ const authRoutes = require("./routes/auth.routes.js");
 const scanRoutes = require("./routes/scan.routes.js");
 const adminRoutes = require("./routes/admin.routes.js");
 const studentRoutes = require("./routes/student.routes.js");
+const qrRoutes = require("./routes/qr.routes.js");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/scan", scanRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/student", studentRoutes);
+app.use("/api/qr", qrRoutes);
 
 module.exports = app;

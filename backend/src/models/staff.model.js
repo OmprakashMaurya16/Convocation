@@ -23,7 +23,7 @@ const staffSchema = new mongoose.Schema(
 
     role: {
       type: String,
-      enum: ["ENTRY", "GOWN", "RETURN", "ADMIN"],
+      enum: ["ENTRY", "SEATING", "GOWN", "RETURN", "ADMIN"],
       required: true,
       index: true,
     },

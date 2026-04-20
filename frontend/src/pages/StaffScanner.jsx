@@ -361,7 +361,6 @@ export default function StaffScanner() {
         activeMode={activeMode}
         setActiveMode={setActiveMode}
         enabledModes={enabledModes}
-        hiddenModes={["seating"]}
       />
     </div>
   );
