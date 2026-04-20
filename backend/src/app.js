@@ -23,9 +23,11 @@ app.get("/", (req, res) => {
 const authRoutes = require("./routes/auth.routes.js");
 const scanRoutes = require("./routes/scan.routes.js");
 const adminRoutes = require("./routes/admin.routes.js");
+const studentRoutes = require("./routes/student.routes.js");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/scan", scanRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/student", studentRoutes);
 
 module.exports = app;
