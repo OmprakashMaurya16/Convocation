@@ -1,5 +1,13 @@
 const Student = require("../models/student.model.js");
 const ScanLog = require("../models/scanLog.model.js");
+const { getIO } = require("../socket.js");
+
+const SCAN_TYPE_LOCATION = {
+  ENTRY: "Entry Gate",
+  SEATING: "Seating Station",
+  GOWN: "Gown Counter",
+  RETURN: "Return Counter",
+};
 
 const scanQR = async (req, res) => {
   try {
@@ -10,7 +18,9 @@ const scanQR = async (req, res) => {
       return res.status(400).json({ success: false, message: "Missing data" });
     }
 
-    const student = await Student.findOne({ qrToken });
+    const student = await Student.findOne({
+      $or: [{ qrToken }, { studentId: qrToken }],
+    });
 
     if (!student) {
       return res
@@ -51,13 +61,30 @@ const scanQR = async (req, res) => {
 
     if (valid) await student.save();
 
-    await ScanLog.create({
+    const scanLog = await ScanLog.create({
       studentId: student._id,
       scanType,
       status: valid ? "SUCCESS" : "REJECTED",
       message,
       scannedBy: staff.id,
     });
+
+    const io = getIO();
+    if (io) {
+      io.emit("scan:created", {
+        id: scanLog._id,
+        time: new Date(scanLog.createdAt).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        }),
+        studentId: student.qrToken,
+        name: student.name,
+        stage: scanType,
+        status: valid ? "SUCCESS" : "REJECTED",
+        location: SCAN_TYPE_LOCATION[scanType] || "Scanner",
+      });
+    }
 
     res.json({
       success: valid,

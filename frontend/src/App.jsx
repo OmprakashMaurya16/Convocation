@@ -1,24 +1,29 @@
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
-import AdminDashboard from './pages/AdminDashboard';
-import StaffScanner from './pages/StaffScanner';
-import InvalidStageError from './pages/InvalidStageError';
-import StudentDashboard from './pages/StudentDashboard';
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import AdminDashboard from "./pages/AdminDashboard";
+import StaffScanner from "./pages/StaffScanner";
+import InvalidStageError from "./pages/InvalidStageError";
+import StudentDashboard from "./pages/StudentDashboard";
+import RoleLogin from "./pages/RoleLogin";
 
 const router = createBrowserRouter([
   {
-    path: '/',
+    path: "/",
+    element: <RoleLogin />,
+  },
+  {
+    path: "/admin-dashboard",
     element: <AdminDashboard />,
   },
   {
-    path: '/staff-scanner',
+    path: "/staff-scanner",
     element: <StaffScanner />,
   },
   {
-    path: '/invalid-stage',
+    path: "/invalid-stage",
     element: <InvalidStageError />,
   },
   {
-    path: '/student-dashboard',
+    path: "/student-dashboard",
     element: <StudentDashboard />,
   },
 ]);

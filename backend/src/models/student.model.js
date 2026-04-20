@@ -7,6 +7,12 @@ const studentSchema = new mongoose.Schema(
       required: true,
     },
 
+    studentId: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+
     department: {
       type: String,
       index: true,

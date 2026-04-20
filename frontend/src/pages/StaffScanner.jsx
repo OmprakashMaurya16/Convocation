@@ -1,97 +1,368 @@
-import { useState } from 'react';
-import ScannerTopBar from '../components/ScannerTopBar';
-import ScannerFrame from '../components/ScannerFrame';
-import ScanResultCard from '../components/ScanResultCard';
-import ScannerBottomNav from '../components/ScannerBottomNav';
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Html5Qrcode } from "html5-qrcode";
+import ScannerTopBar from "../components/ScannerTopBar";
+import ScannerFrame from "../components/ScannerFrame";
+import ScanResultCard from "../components/ScanResultCard";
+import ScannerBottomNav from "../components/ScannerBottomNav";
+import { apiRequest, clearAuthSession, getAuthSession } from "../utils/api";
+
+const QR_READER_ELEMENT_ID = "staff-scanner-qr-reader";
 
 const SCANNER_MODES = {
   entry: {
-    counter: 'Entry Gate 1',
-    lastResult: {
-      status: 'CHECKED IN',
-      statusColor: 'bg-blue-500',
-      time: '13:45:22',
-      student: 'John Anderson',
-      idNumber: 'SC-2024-5421',
-      nextPhase: 'Registration Desk',
-      nextPhaseIcon: 'assignment',
-    },
+    counter: "Entry Gate 1",
+    scanType: "ENTRY",
   },
   seating: {
-    counter: 'Seating Station B-5',
-    lastResult: {
-      status: 'SEATED',
-      statusColor: 'bg-emerald-500',
-      time: '14:15:33',
-      student: 'Priya Sharma',
-      idNumber: 'SC-2024-3847',
-      nextPhase: 'Procession Hall',
-      nextPhaseIcon: 'walk',
-    },
+    counter: "Seating Station B-5",
+    scanType: "SEATING",
   },
   gown: {
-    counter: 'Gown Counter A-2',
-    lastResult: {
-      status: 'GOWN ISSUED',
-      statusColor: 'bg-green-500',
-      time: '14:22:05',
-      student: 'Amara Okafor',
-      idNumber: 'SC-2024-8812',
-      nextPhase: 'Seating Hall',
-      nextPhaseIcon: 'chair',
-    },
+    counter: "Gown Counter A-2",
+    scanType: "GOWN",
   },
   return: {
-    counter: 'Return Counter C-3',
-    lastResult: {
-      status: 'GOWN RETURNED',
-      statusColor: 'bg-amber-500',
-      time: '15:08:47',
-      student: 'David Okonkwo',
-      idNumber: 'SC-2024-7634',
-      nextPhase: 'Exit Gate',
-      nextPhaseIcon: 'logout',
-    },
+    counter: "Return Counter C-3",
+    scanType: "RETURN",
   },
 };
 
+const STATE_TO_NEXT_PHASE = {
+  REGISTERED: { label: "Entry Scan", icon: "login" },
+  CHECKED_IN: { label: "Seating Scan", icon: "chair" },
+  SEATED: { label: "Gown Counter", icon: "checkroom" },
+  GOWN_ISSUED: { label: "Return Counter", icon: "assignment_return" },
+  COMPLETED: { label: "Completed", icon: "school" },
+};
+
+const STATE_LABEL = {
+  REGISTERED: "REGISTERED",
+  CHECKED_IN: "CHECKED IN",
+  SEATED: "SEATED",
+  GOWN_ISSUED: "GOWN ISSUED",
+  COMPLETED: "COMPLETED",
+};
+
 export default function StaffScanner() {
-  const [activeMode, setActiveMode] = useState('gown');
-  const [showResult, setShowResult] = useState(true);
+  const navigate = useNavigate();
+  const auth = useMemo(() => getAuthSession(), []);
+  const initialMode =
+    auth?.role && auth.role !== "ADMIN" ? auth.role.toLowerCase() : "entry";
+  const [activeMode, setActiveMode] = useState(
+    SCANNER_MODES[initialMode] ? initialMode : "entry",
+  );
+  const [showResult, setShowResult] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState("");
+  const [cameraActive, setCameraActive] = useState(false);
+  const [cameraError, setCameraError] = useState("");
+  const [startingCamera, setStartingCamera] = useState(false);
+  const cameraScannerRef = useRef(null);
+
+  const normalizeScannedValue = (value) => {
+    const raw = value.trim();
+
+    // Accept plain token, URL token (?qrToken=...), or last path segment token.
+    if (!raw) return "";
+
+    if (raw.includes("http://") || raw.includes("https://")) {
+      try {
+        const url = new URL(raw);
+        const fromQuery = url.searchParams.get("qrToken");
+        if (fromQuery) return fromQuery.trim();
+
+        const segments = url.pathname.split("/").filter(Boolean);
+        if (segments.length) return segments[segments.length - 1].trim();
+      } catch {
+        return raw;
+      }
+    }
+
+    return raw;
+  };
+
+  const handleLogout = () => {
+    clearAuthSession();
+    navigate("/");
+  };
+
+  useEffect(() => {
+    if (!auth?.token || !auth?.role) {
+      navigate("/");
+    }
+  }, [auth, navigate]);
+
+  useEffect(() => {
+    return () => {
+      if (cameraScannerRef.current) {
+        cameraScannerRef.current
+          .stop()
+          .catch(() => null)
+          .finally(() => {
+            cameraScannerRef.current?.clear().catch(() => null);
+          });
+      }
+    };
+  }, []);
 
   const currentMode = SCANNER_MODES[activeMode];
-  const result = currentMode.lastResult;
+  const enabledModes =
+    auth?.role === "ADMIN"
+      ? undefined
+      : auth?.role
+        ? [auth.role.toLowerCase()]
+        : undefined;
 
-  const handleScan = () => {
-    setShowResult(true);
-    setTimeout(() => setShowResult(false), 3500);
+  const submitScan = async (rawToken) => {
+    const normalizedToken = normalizeScannedValue(rawToken);
+
+    if (!normalizedToken) {
+      setError("Enter a QR token to scan.");
+      return;
+    }
+
+    if (!auth?.token) {
+      setError("Your session has expired. Please login again.");
+      clearAuthSession();
+      navigate("/");
+      return;
+    }
+
+    setError("");
+
+    try {
+      const [scanResponse, studentResponse] = await Promise.all([
+        apiRequest("/api/scan", {
+          method: "POST",
+          body: {
+            qrToken: normalizedToken,
+            scanType: currentMode.scanType,
+          },
+          token: auth.token,
+        }),
+        apiRequest(`/api/student/${encodeURIComponent(normalizedToken)}`),
+      ]);
+
+      const nextPhase =
+        STATE_TO_NEXT_PHASE[scanResponse.state] ||
+        STATE_TO_NEXT_PHASE.REGISTERED;
+
+      setResult({
+        status: scanResponse.success
+          ? STATE_LABEL[scanResponse.state] || "SUCCESS"
+          : "REJECTED",
+        statusColor: scanResponse.success ? "bg-emerald-600" : "bg-error",
+        time: new Date().toLocaleTimeString(),
+        student: studentResponse.name || "Unknown Student",
+        idNumber: normalizedToken,
+        nextPhase: nextPhase.label,
+        nextPhaseIcon: nextPhase.icon,
+      });
+      setShowResult(true);
+    } catch (scanError) {
+      const message = scanError.message || "Scan failed";
+      setResult({
+        status: "REJECTED",
+        statusColor: "bg-error",
+        time: new Date().toLocaleTimeString(),
+        student: "Unknown Student",
+        idNumber: normalizedToken,
+        nextPhase: "Verify Student Record",
+        nextPhaseIcon: "error",
+      });
+      setShowResult(true);
+      setError(message);
+
+      if (
+        message.toLowerCase().includes("invalid token") ||
+        message.toLowerCase().includes("no token")
+      ) {
+        clearAuthSession();
+        navigate("/");
+      }
+    }
+  };
+
+  const stopCamera = async () => {
+    const scanner = cameraScannerRef.current;
+    if (!scanner) return;
+
+    try {
+      await scanner.stop();
+    } catch {
+      // noop - scanner may already be stopped
+    }
+
+    try {
+      await scanner.clear();
+    } catch {
+      // noop - scanner cleanup best effort
+    }
+
+    cameraScannerRef.current = null;
+    setCameraActive(false);
+  };
+
+  const startCamera = async () => {
+    if (startingCamera || cameraActive) return;
+
+    setStartingCamera(true);
+    setCameraError("");
+
+    try {
+      const scanner = new Html5Qrcode(QR_READER_ELEMENT_ID);
+      cameraScannerRef.current = scanner;
+
+      const config = {
+        fps: 12,
+        qrbox: (viewfinderWidth, viewfinderHeight) => {
+          const edge = Math.floor(
+            Math.min(viewfinderWidth, viewfinderHeight) * 0.72,
+          );
+          return {
+            width: Math.max(180, edge),
+            height: Math.max(180, edge),
+          };
+        },
+      };
+
+      const onSuccess = async (decodedText) => {
+        await stopCamera();
+        await submitScan(decodedText);
+      };
+
+      const onError = () => {
+        // Ignore per-frame decode errors while scanning live stream.
+      };
+
+      try {
+        await scanner.start(
+          { facingMode: "environment" },
+          config,
+          onSuccess,
+          onError,
+        );
+      } catch {
+        // Fallback for browsers/devices that don't expose environment facing mode.
+        const cameras = await Html5Qrcode.getCameras();
+        if (!cameras?.length) {
+          throw new Error("No camera found");
+        }
+
+        await scanner.start(
+          { deviceId: { exact: cameras[0].id } },
+          config,
+          onSuccess,
+          onError,
+        );
+      }
+
+      setCameraActive(true);
+    } catch {
+      setCameraError(
+        "Unable to start camera. Allow camera permission and reload once, then try again.",
+      );
+      await stopCamera();
+    } finally {
+      setStartingCamera(false);
+    }
   };
 
   return (
-    <div className="flex flex-col h-screen bg-background overflow-hidden">
+    <div className="min-h-screen flex flex-col bg-surface overflow-hidden">
       {/* Top Bar */}
-      <ScannerTopBar 
-        title="Scanner Ledger" 
+      <ScannerTopBar
+        title="Scanner Ledger"
         counter={currentMode.counter}
-        onSettings={() => console.log('Settings')}
+        onSettings={() => console.log("Settings")}
+        onLogout={handleLogout}
       />
 
-      {/* Main Scanning Area */}
-      <ScannerFrame>
-        <ScanResultCard
-          show={showResult}
-          status={result.status}
-          statusColor={result.statusColor}
-          time={result.time}
-          student={result.student}
-          idNumber={result.idNumber}
-          nextPhase={result.nextPhase}
-          nextPhaseIcon={result.nextPhaseIcon}
-        />
-      </ScannerFrame>
+      <div className="flex-1 overflow-y-auto bg-surface-container-low/30 pb-24 md:pb-28">
+        <div className="mx-auto w-full max-w-5xl px-3 pt-3 sm:px-5 sm:pt-4 md:px-6 md:pt-5">
+          <div className="mx-auto w-full max-w-4xl rounded-2xl border border-outline-variant/40 bg-surface-container-lowest p-3 shadow-sm sm:p-4 md:p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <span
+                  className={`h-2.5 w-2.5 rounded-full ${cameraActive ? "bg-emerald-500" : "bg-outline"}`}
+                />
+                <span className="text-xs font-semibold text-on-surface-variant">
+                  {cameraActive ? "Camera active" : "Camera off"}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={cameraActive ? stopCamera : startCamera}
+                disabled={startingCamera}
+                className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-60"
+              >
+                {startingCamera
+                  ? "Starting camera..."
+                  : cameraActive
+                    ? "Stop Camera"
+                    : "Use Camera"}
+              </button>
+            </div>
+
+            <p className="mt-2 text-xs text-on-surface-variant">
+              Point your camera at a QR code. Scan triggers automatically.
+            </p>
+
+            {error ? (
+              <p className="mt-2 text-xs font-medium text-error">{error}</p>
+            ) : null}
+            {cameraError ? (
+              <p className="mt-2 text-xs font-medium text-error">
+                {cameraError}
+              </p>
+            ) : null}
+          </div>
+
+          {/* Main Scanning Area */}
+          <div className="mt-4">
+            <ScannerFrame
+              centerContent={
+                <div className="relative h-full w-full bg-surface-container-low">
+                  <div id={QR_READER_ELEMENT_ID} className="h-full w-full" />
+                  {!cameraActive ? (
+                    <div className="absolute inset-0 grid place-items-center text-center px-6">
+                      <div>
+                        <p className="text-sm font-semibold text-on-surface">
+                          Camera preview will appear here
+                        </p>
+                        <p className="mt-1 text-xs text-on-surface-variant">
+                          Click "Use Camera" to begin scanning.
+                        </p>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              }
+            >
+              <ScanResultCard
+                show={showResult}
+                status={result?.status}
+                statusColor={result?.statusColor}
+                time={result?.time}
+                student={result?.student}
+                idNumber={result?.idNumber}
+                nextPhase={result?.nextPhase}
+                nextPhaseIcon={result?.nextPhaseIcon}
+              />
+            </ScannerFrame>
+          </div>
+        </div>
+      </div>
 
       {/* Bottom Navigation */}
-      <ScannerBottomNav activeMode={activeMode} setActiveMode={setActiveMode} />
+      <ScannerBottomNav
+        activeMode={activeMode}
+        setActiveMode={setActiveMode}
+        enabledModes={enabledModes}
+        hiddenModes={["seating"]}
+      />
     </div>
   );
 }

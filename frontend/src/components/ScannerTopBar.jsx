@@ -1,30 +1,45 @@
-export default function ScannerTopBar({ title, counter, onSettings }) {
+export default function ScannerTopBar({
+  title,
+  counter,
+  onSettings,
+  onLogout = null,
+}) {
   return (
-    <header className="bg-surface/80 backdrop-blur-md border-b border-blue-200/20 shadow-sm sticky top-0 z-40 flex justify-between items-center px-4 sm:px-8 lg:px-12 py-4 md:py-6 w-full">
-      {/* Left: Scanner Icon + Title */}
-      <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 flex-1">
-        <span className="material-symbols-outlined text-blue-900 text-lg sm:text-xl lg:text-2xl">
-          qr_code_scanner
-        </span>
-        <h1 className="text-base sm:text-lg md:text-xl lg:text-2xl font-headline font-black tracking-tight text-blue-900">
-          Scanner Ledger
-        </h1>
-      </div>
+    <header className="sticky top-0 z-40 w-full border-b border-outline-variant/40 bg-surface/95 backdrop-blur-sm">
+      <div className="mx-auto flex w-full max-w-7xl items-center gap-2 px-3 py-3 sm:gap-3 sm:px-5 sm:py-4 md:px-6">
+        <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+          <span className="material-symbols-outlined text-primary text-lg sm:text-xl">
+            qr_code_scanner
+          </span>
+          <h1 className="truncate text-base font-headline font-bold tracking-tight text-on-background sm:text-lg md:text-xl">
+            {title}
+          </h1>
+        </div>
 
-      {/* Center: Counter Badge */}
-      <div className="bg-primary-container px-3 sm:px-4 md:px-6 py-1.5 md:py-2 rounded-full mx-2 md:mx-4">
-        <span className="text-xs sm:text-sm md:text-base lg:text-lg font-headline font-bold text-white tracking-wide whitespace-nowrap">
-          {counter}
-        </span>
-      </div>
+        <div className="rounded-full bg-primary px-3 py-1.5 sm:px-4 sm:py-2">
+          <span className="whitespace-nowrap text-[11px] font-headline font-semibold tracking-wide text-white sm:text-xs md:text-sm">
+            {counter}
+          </span>
+        </div>
 
-      {/* Right: Settings */}
-      <button
-        onClick={onSettings}
-        className="text-blue-400 hover:opacity-80 transition-opacity active:scale-90 ml-2"
-      >
-        <span className="material-symbols-outlined text-lg md:text-xl lg:text-2xl">settings</span>
-      </button>
+        <button
+          onClick={onSettings}
+          className="ml-1 rounded-full p-2 text-primary/70 transition-colors hover:bg-primary/10 hover:text-primary"
+          aria-label="Open scanner settings"
+        >
+          <span className="material-symbols-outlined text-xl">settings</span>
+        </button>
+
+        {onLogout ? (
+          <button
+            onClick={onLogout}
+            className="rounded-lg bg-error px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 transition-opacity"
+            aria-label="Logout"
+          >
+            Logout
+          </button>
+        ) : null}
+      </div>
     </header>
   );
 }

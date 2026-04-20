@@ -1,32 +1,53 @@
-export default function ScannerBottomNav({ activeMode, setActiveMode }) {
+export default function ScannerBottomNav({
+  activeMode,
+  setActiveMode,
+  enabledModes,
+  hiddenModes = [],
+}) {
   const modes = [
-    { id: 'entry', label: 'Entry', icon: 'login' },
-    { id: 'seating', label: 'Seating', icon: 'chair' },
-    { id: 'gown', label: 'Gown', icon: 'checkroom' },
-    { id: 'return', label: 'Return', icon: 'assignment_return' },
+    { id: "entry", label: "Entry", icon: "login" },
+    { id: "seating", label: "Seating", icon: "chair" },
+    { id: "gown", label: "Gown", icon: "checkroom" },
+    { id: "return", label: "Return", icon: "assignment_return" },
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 w-full h-20 md:h-24 lg:h-28 bg-surface/90 backdrop-blur-xl border-t border-blue-100/10 shadow-2xl flex justify-around items-center px-2 md:px-4 lg:px-8 z-50">
-      {modes.map((mode) => (
-        <button
-          key={mode.id}
-          onClick={() => setActiveMode(mode.id)}
-          className={`flex flex-col items-center justify-center py-3 md:py-4 lg:py-5 px-3 md:px-4 lg:px-6 rounded-lg md:rounded-xl lg:rounded-2xl transition-all active:scale-90 duration-75 flex-1 gap-1 md:gap-1.5 lg:gap-2 ${
-            activeMode === mode.id
-              ? 'bg-primary text-white scale-105 shadow-lg'
-              : 'text-blue-400 hover:bg-blue-50'
-          }`}
-          style={activeMode === mode.id ? { fontVariationSettings: "'FILL' 1" } : {}}
-        >
-          <span className="material-symbols-outlined text-base md:text-lg lg:text-2xl">
-            {mode.icon}
-          </span>
-          <span className="font-label font-semibold text-[10px] md:text-xs lg:text-sm uppercase tracking-wider">
-            {mode.label}
-          </span>
-        </button>
-      ))}
+    <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-outline-variant/40 bg-surface/95 backdrop-blur-sm pb-[env(safe-area-inset-bottom)]">
+      <div className="mx-auto grid w-full max-w-4xl grid-cols-3 gap-1 px-2 py-2 sm:px-3 sm:py-2.5">
+        {modes
+          .filter((mode) => !hiddenModes.includes(mode.id))
+          .map((mode) => {
+            const isEnabled = !enabledModes || enabledModes.includes(mode.id);
+
+            return (
+              <button
+                key={mode.id}
+                onClick={() => isEnabled && setActiveMode(mode.id)}
+                disabled={!isEnabled}
+                className={`flex flex-col items-center justify-center rounded-xl px-2 py-2 transition-colors ${
+                  activeMode === mode.id
+                    ? "bg-primary text-white"
+                    : isEnabled
+                      ? "text-on-surface-variant hover:bg-surface-container"
+                      : "cursor-not-allowed text-on-surface-variant/45"
+                }`}
+                style={
+                  activeMode === mode.id
+                    ? { fontVariationSettings: "'FILL' 1" }
+                    : {}
+                }
+                aria-label={`Switch to ${mode.label} mode`}
+              >
+                <span className="material-symbols-outlined text-lg sm:text-xl">
+                  {mode.icon}
+                </span>
+                <span className="mt-0.5 font-label text-[11px] font-semibold uppercase tracking-wide sm:text-xs">
+                  {mode.label}
+                </span>
+              </button>
+            );
+          })}
+      </div>
     </nav>
   );
 }
