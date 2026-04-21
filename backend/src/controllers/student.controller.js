@@ -4,7 +4,12 @@ const getStudentByQR = async (req, res) => {
   try {
     const { qrToken } = req.params;
 
-    const student = await Student.findOne({ qrToken });
+    // Try to find by qrToken first, then by studentId
+    let student = await Student.findOne({ qrToken });
+
+    if (!student) {
+      student = await Student.findOne({ studentId: qrToken });
+    }
 
     if (!student) {
       return res.status(404).json({ message: "Student not found" });

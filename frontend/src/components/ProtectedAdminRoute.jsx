@@ -1,24 +1,30 @@
-import AdminDashboard from '../pages/AdminDashboard';
+import { Navigate } from "react-router-dom";
+import AdminDashboard from "../pages/AdminDashboard";
 
-/**
- * ProtectedAdminRoute
- * 
- * This component should be used to protect the admin dashboard.
- * In production, implement proper authentication checks here.
- * 
- * Example usage:
- * <ProtectedAdminRoute>
- *   <AdminDashboard />
- * </ProtectedAdminRoute>
- */
 export default function ProtectedAdminRoute() {
-  // TODO: Add authentication check
-  // const { user } = useAuth();
-  // const isAdmin = user?.role === 'admin';
-  
-  // if (!isAdmin) {
-  //   return <Navigate to="/login" replace />;
-  // }
+  // Get auth session from localStorage
+  const authSession = localStorage.getItem("convocation.auth");
 
-  return <AdminDashboard />;
+  if (!authSession) {
+    // No token - redirect to login
+    return <Navigate to="/login" replace />;
+  }
+
+  try {
+    const auth = JSON.parse(authSession);
+    const userRole = auth?.role?.toUpperCase();
+
+    // Check if user is admin
+    if (userRole !== "ADMIN") {
+      // Not an admin - redirect to login
+      return <Navigate to="/login" replace />;
+    }
+
+    // User is authenticated and is admin - allow access
+    return <AdminDashboard />;
+  } catch (error) {
+    console.error("Error parsing auth session:", error);
+    // Invalid session - redirect to login
+    return <Navigate to="/login" replace />;
+  }
 }

@@ -4,12 +4,36 @@ const cors = require("cors");
 const app = express();
 app.use(express.json({ limit: "16kb" }));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
+
+// List of allowed origins
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "https://convocation-frontend.vercel.app",
+];
+
 app.use(
   cors({
-    origin: (process.env.FRONTEND_URL || "http://localhost:5173").replace(
-      /\/$/,
-      "",
-    ),
+    origin: function (origin, callback) {
+      // Allow requests with no origin (mobile apps, Postman)
+      if (!origin) return callback(null, true);
+
+      // Normalize origin by removing trailing slash
+      const normalizedOrigin = origin.replace(/\/$/, "");
+
+      // Check if origin is in allowed list
+      if (allowedOrigins.includes(normalizedOrigin)) {
+        return callback(null, true);
+      }
+
+      // In development mode, allow all origins
+      if (process.env.NODE_ENV !== "production") {
+        return callback(null, true);
+      }
+
+      // In production, reject unknown origins
+      callback(new Error("CORS not allowed"));
+    },
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
