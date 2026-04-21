@@ -201,7 +201,7 @@ export default function AdminDashboard() {
 
           {/* 2. Charts Section */}
           <section className="grid grid-cols-1 lg:grid-cols-12 gap-3 md:gap-4 lg:gap-6">
-            <DepartmentChart />
+            <DepartmentChart token={auth?.token} />
             <GownLogistics stats={stats} />
           </section>
 

@@ -1,6 +1,6 @@
 const Student = require("../models/student.model.js");
 const ScanLog = require("../models/scanLog.model.js");
-const { getIO } = require("../socket.js");
+const { getIO, emitToStudent } = require("../socket.js");
 
 const SCAN_TYPE_LOCATION = {
   ENTRY: "Entry Gate",
@@ -78,12 +78,23 @@ const scanQR = async (req, res) => {
           minute: "2-digit",
           second: "2-digit",
         }),
-        studentId: student.qrToken,
+        studentId: student.studentId,
         name: student.name,
         stage: scanType,
         status: valid ? "SUCCESS" : "REJECTED",
         location: SCAN_TYPE_LOCATION[scanType] || "Scanner",
       });
+
+      // Send real-time update to specific student
+      if (valid) {
+        emitToStudent(student.studentId, "student:updated", {
+          studentId: student.studentId,
+          qrToken: student.qrToken,
+          state: student.state,
+          gown: student.gown,
+          seat: student.seat,
+        });
+      }
     }
 
     res.json({

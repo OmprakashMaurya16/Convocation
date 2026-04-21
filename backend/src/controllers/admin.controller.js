@@ -35,7 +35,7 @@ const getRecentScans = async (req, res) => {
     const logs = await ScanLog.find()
       .sort({ createdAt: -1 })
       .limit(20)
-      .populate({ path: "studentId", select: "name qrToken" });
+      .populate({ path: "studentId", select: "name qrToken studentId" });
 
     const scans = logs.map((log) => ({
       id: log._id,
@@ -44,7 +44,7 @@ const getRecentScans = async (req, res) => {
         minute: "2-digit",
         second: "2-digit",
       }),
-      studentId: log.studentId?.qrToken || "N/A",
+      studentId: log.studentId?.studentId || "N/A",
       name: log.studentId?.name || "Unknown",
       stage: log.scanType,
       status: log.status,
@@ -90,7 +90,7 @@ const getCandidates = async (req, res) => {
         .sort({ updatedAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit)
-        .select("name qrToken department state seat updatedAt"),
+        .select("name qrToken studentId department state seat updatedAt"),
       Student.distinct("department"),
     ]);
 
@@ -110,7 +110,7 @@ const getCandidates = async (req, res) => {
           : student.seat?.number || "—";
 
       return {
-        id: student.qrToken,
+        id: student.studentId || student.qrToken,
         initials,
         name: student.name,
         department: student.department || "N/A",
@@ -134,8 +134,44 @@ const getCandidates = async (req, res) => {
   }
 };
 
+const getDepartmentStats = async (req, res) => {
+  try {
+    // Get all students grouped by department
+    const allStudents = await Student.find().select("department state");
+
+    // Define departments in order
+    const departments = ["INFT", "CMPN", "EXTC", "EXCS", "BIOMD"];
+
+    // Calculate stats for each department
+    const deptStats = departments.map((dept) => {
+      const deptStudents = allStudents.filter((s) => s.department === dept);
+      const totalExpected = deptStudents.length;
+      const presentCount = deptStudents.filter(
+        (s) => s.state === "COMPLETED" || s.state === "GOWN_ISSUED",
+      ).length;
+
+      return {
+        name: dept,
+        present:
+          totalExpected > 0
+            ? Math.round((presentCount / totalExpected) * 100)
+            : 0,
+        expected: 100,
+        totalExpected,
+        presentCount,
+      };
+    });
+
+    res.json(deptStats);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 module.exports = {
   getStats,
   getRecentScans,
   getCandidates,
+  getDepartmentStats,
 };

@@ -5,6 +5,7 @@ import {
   clearStudentSession,
   getStudentSession,
 } from "../utils/api";
+import { createSocketClient } from "../utils/socket";
 
 const STAGE_ORDER = [
   "REGISTERED",
@@ -56,6 +57,39 @@ export default function StudentDashboard() {
     };
 
     fetchStudent();
+
+    // Real-time updates via Socket.io
+    const socket = createSocketClient();
+
+    socket.on("connect", () => {
+      console.log("Connected to real-time updates");
+      socket.emit("student:subscribe", { studentId: qrToken });
+    });
+
+    // Listen for state updates
+    socket.on("student:updated", (updatedData) => {
+      if (
+        updatedData.studentId === qrToken ||
+        updatedData.qrToken === qrToken
+      ) {
+        setStudent((prev) => ({ ...prev, ...updatedData }));
+      }
+    });
+
+    // Listen for scan events
+    socket.on("scan:created", (scanData) => {
+      if (scanData.studentId === qrToken) {
+        fetchStudent();
+      }
+    });
+
+    socket.on("disconnect", () => {
+      console.log("Disconnected from real-time updates");
+    });
+
+    return () => {
+      socket.disconnect();
+    };
   }, [navigate, studentSession]);
 
   const currentState = student?.state || "REGISTERED";
