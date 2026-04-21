@@ -10,12 +10,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "seed": "node src/scripts/seed-staff.js",
-    "seed:student": "node src/scripts/seed-student.js",
-    "test:workflow": "node src/scripts/test-workflow.js",
-    "test:frontend": "node src/scripts/test-frontend.js",
-    "test:phase5": "node src/scripts/test-phase5.js",
-    "test:phase6": "node src/scripts/test-phase6.js"
+    "seed": "node src/Scripts/seed.js"
   },
   "dependencies": {
     "axios": "^1.15.1",
