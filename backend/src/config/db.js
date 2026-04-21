@@ -1,29 +1,15 @@
 const mongoose = require("mongoose");
+const dns = require("dns");
+
+dns.setServers(["1.1.1.1", "8.8.8.8"]);
 
 const connectDB = async () => {
-  const uri = process.env.MONGO_URI;
-
-  if (!uri) {
-    throw new Error("MONGO_URI is not set in environment variables");
-  }
-
-  if (mongoose.connection.readyState === 1) {
-    console.log("MongoDB already connected");
-    return mongoose.connection;
-  }
-
-  if (mongoose.connection.readyState === 2) {
-    console.log("MongoDB connection is in progress");
-    return mongoose.connection;
-  }
-
   try {
-    await mongoose.connect(uri);
-    console.log("Connected to MongoDB successfully");
-    return mongoose.connection;
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log("Database connected successfully");
   } catch (error) {
-    console.error("Database connection failed:", error.message);
-    throw error;
+    console.error("Error connecting to MongoDB:", error.message);
+    process.exit(1);
   }
 };
 

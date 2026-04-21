@@ -5,7 +5,7 @@ const mongoose = require("mongoose");
 const connectDB = require("../config/db.js");
 const Staff = require("../models/staff.model.js");
 
-const STAFF_ROLES = ["ENTRY", "SEATING", "GOWN", "RETURN", "ADMIN"];
+const STAFF_ROLES = ["ENTRY", "GOWN", "RETURN", "ADMIN"];
 
 const adminAccount = {
   name: process.env.ADMIN_NAME || "Admin User",
