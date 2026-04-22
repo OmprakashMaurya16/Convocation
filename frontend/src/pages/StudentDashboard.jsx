@@ -76,11 +76,9 @@ export default function StudentDashboard() {
       }
     });
 
-    // Listen for scan events
-    socket.on("scan:created", (scanData) => {
-      if (scanData.studentId === qrToken) {
-        fetchStudent();
-      }
+    // Listen for scan events (server emits student-targeted refresh events)
+    socket.on("scan:created", () => {
+      fetchStudent();
     });
 
     socket.on("disconnect", () => {

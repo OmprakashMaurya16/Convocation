@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Header } from "../components";
 import CandidateStatsCard from "../components/CandidateStatsCard";
 import CandidateTable from "../components/CandidateTable";
 import FilterBar from "../components/FilterBar";
 import { apiRequest, clearAuthSession, getAuthSession } from "../utils/api";
+import { createSocketClient } from "../utils/socket";
 
 export default function CandidateLedger({
   onMenuClick = () => {},
@@ -19,6 +20,49 @@ export default function CandidateLedger({
   const [department, setDepartment] = useState("ALL");
   const [stage, setStage] = useState("ALL");
   const [isLoading, setIsLoading] = useState(false);
+  const [reloadTick, setReloadTick] = useState(0);
+  const reloadTimeoutRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (reloadTimeoutRef.current) {
+        window.clearTimeout(reloadTimeoutRef.current);
+        reloadTimeoutRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!auth?.token) return;
+
+    const socket = createSocketClient({ token: auth.token });
+
+    socket.on("connect", () => {
+      socket.emit("admin:subscribe");
+    });
+
+    socket.on("stats:updated", (nextStats) => {
+      setStats(nextStats);
+    });
+
+    const scheduleReload = () => {
+      if (reloadTimeoutRef.current) {
+        window.clearTimeout(reloadTimeoutRef.current);
+      }
+
+      reloadTimeoutRef.current = window.setTimeout(() => {
+        setReloadTick((value) => value + 1);
+        reloadTimeoutRef.current = null;
+      }, 250);
+    };
+
+    socket.on("scan:created", scheduleReload);
+    socket.on("seating:refresh", scheduleReload);
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [auth]);
 
   useEffect(() => {
     if (!auth?.token) {
@@ -44,7 +88,7 @@ export default function CandidateLedger({
     };
 
     loadStats();
-  }, [auth, onLogout]);
+  }, [auth, onLogout, reloadTick]);
 
   useEffect(() => {
     if (!auth?.token) {
@@ -84,7 +128,7 @@ export default function CandidateLedger({
     };
 
     loadCandidates();
-  }, [auth, department, onLogout, page, stage]);
+  }, [auth, department, onLogout, page, stage, reloadTick]);
 
   const totalRegistered = stats?.total || 0;
   const checkedIn = stats?.checkedIn || 0;
@@ -188,7 +232,7 @@ export default function CandidateLedger({
           <CandidateStatsCard
             icon="event_seat"
             iconBg="bg-emerald-50 text-emerald-600"
-            label="Seated Correctly"
+            label="Seated Assigned"
             value={seated.toLocaleString()}
           />
         </div>

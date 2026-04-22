@@ -1,6 +1,6 @@
 const Student = require("../models/student.model.js");
 const ScanLog = require("../models/scanLog.model.js");
-const { getIO, emitToStudent } = require("../socket.js");
+const { getIO, emitToAdmins, emitToStudent } = require("../socket.js");
 const { findNextAvailableSeat } = require("../utils/seatAllocator.js");
 
 const SCAN_TYPE_LOCATION = {
@@ -39,6 +39,11 @@ const scanQR = async (req, res) => {
         message: "Unauthorized scan type for this role",
       });
     }
+
+    const previousSeatId =
+      student?.seat?.section && student?.seat?.number
+        ? `${student.seat.section}${student.seat.number}`
+        : null;
 
     let valid = false;
     let message = "";
@@ -102,7 +107,7 @@ const scanQR = async (req, res) => {
 
     const io = getIO();
     if (io) {
-      io.emit("scan:created", {
+      const scanPayload = {
         id: scanLog._id,
         time: new Date(scanLog.createdAt).toLocaleTimeString([], {
           hour: "2-digit",
@@ -114,9 +119,18 @@ const scanQR = async (req, res) => {
         stage: scanType,
         status: valid ? "SUCCESS" : "REJECTED",
         location: SCAN_TYPE_LOCATION[scanType] || "Scanner",
+      };
+
+      // Admin-only live feed
+      emitToAdmins("scan:created", scanPayload);
+
+      // Student-specific feed (keeps StudentDashboard behavior without leaking global scan feed)
+      emitToStudent(student.studentId, "scan:created", {
+        scanType,
+        status: valid ? "SUCCESS" : "REJECTED",
       });
 
-      // Send real-time update to specific student
+      // Student record update
       if (valid) {
         emitToStudent(student.studentId, "student:updated", {
           studentId: student.studentId,
@@ -125,6 +139,53 @@ const scanQR = async (req, res) => {
           gown: student.gown,
           seat: student.seat,
         });
+      }
+
+      const nextSeatId =
+        student.seat?.section && student.seat?.number
+          ? `${student.seat.section}${student.seat.number}`
+          : null;
+
+      if (valid && nextSeatId && nextSeatId !== previousSeatId) {
+        emitToAdmins("seating:seatAssigned", {
+          seatId: nextSeatId,
+          student: {
+            name: student.name,
+            studentId: student.studentId,
+            department: student.department || null,
+            state: student.state,
+          },
+        });
+      }
+
+      if (valid) {
+        const [total, checkedIn, seated, gownIssued, completed] =
+          await Promise.all([
+            Student.countDocuments(),
+            Student.countDocuments({
+              state: {
+                $in: ["CHECKED_IN", "SEATED", "GOWN_ISSUED", "COMPLETED"],
+              },
+            }),
+            Student.countDocuments({
+              state: { $in: ["SEATED", "GOWN_ISSUED", "COMPLETED"] },
+            }),
+            Student.countDocuments({
+              state: { $in: ["GOWN_ISSUED", "COMPLETED"] },
+            }),
+            Student.countDocuments({ state: "COMPLETED" }),
+          ]);
+
+        emitToAdmins("stats:updated", {
+          total,
+          checkedIn,
+          seated,
+          gownIssued,
+          completed,
+        });
+
+        // Department chart depends on "present" counts, so refresh it on any valid scan.
+        emitToAdmins("department-stats:refresh", { ok: true });
       }
     }
 

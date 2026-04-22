@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Header, StatsCard } from "../components";
 import SeatMap from "../components/SeatMap";
 import { apiRequest, clearAuthSession, getAuthSession } from "../utils/api";
+import { createSocketClient } from "../utils/socket";
 
 export default function SeatingArchitecture({
   onMenuClick = () => {},
@@ -86,8 +87,55 @@ export default function SeatingArchitecture({
   }, [auth, onLogout]);
 
   useEffect(() => {
-    loadSeatingData();
-  }, [loadSeatingData]);
+    if (!auth?.token) return;
+
+    const timeoutId = window.setTimeout(() => {
+      loadSeatingData();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [auth, loadSeatingData]);
+
+  useEffect(() => {
+    if (!auth?.token) return;
+
+    const socket = createSocketClient({ token: auth.token });
+
+    socket.on("connect", () => {
+      socket.emit("admin:subscribe");
+    });
+
+    socket.on("seating:seatAssigned", (payload) => {
+      const seatId = payload?.seatId;
+      if (!seatId) return;
+
+      setSeatStatusById((previous) => ({
+        ...(previous || {}),
+        [String(seatId)]: "occupied",
+      }));
+
+      if (payload?.student && typeof payload.student === "object") {
+        setSeatInfoById((previous) => ({
+          ...(previous || {}),
+          [String(seatId)]: payload.student,
+        }));
+      }
+    });
+
+    socket.on("seating:refresh", () => {
+      loadSeatingData();
+    });
+
+    socket.on("stats:updated", (nextStats) => {
+      setStats(nextStats);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [auth, loadSeatingData]);
 
   const handleSeatOverride = useCallback(
     async (seatId, status) => {
@@ -158,10 +206,9 @@ export default function SeatingArchitecture({
       });
 
       const cleared = response?.clearedSeats ?? 0;
-      const resetToRegistered = response?.resetToRegistered ?? 0;
       const clearedOverrides = response?.clearedOverrides ?? 0;
       setResetNote(
-        `Reset complete. Cleared seats: ${cleared}. Overrides cleared: ${clearedOverrides}. Reset: ${resetToRegistered}.`,
+        `Reset complete. Cleared seats: ${cleared}. Overrides cleared: ${clearedOverrides}.`,
       );
 
       await loadSeatingData();

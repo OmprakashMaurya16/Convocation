@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { apiRequest } from "../utils/api";
 
-export default function DepartmentChart({ token }) {
+export default function DepartmentChart({ token, refreshKey = 0 }) {
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -32,7 +32,7 @@ export default function DepartmentChart({ token }) {
     if (token) {
       fetchDepartmentStats();
     }
-  }, [token]);
+  }, [token, refreshKey]);
 
   if (loading) {
     return (

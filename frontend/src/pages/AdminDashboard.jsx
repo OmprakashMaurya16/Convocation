@@ -22,6 +22,7 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [liveScans, setLiveScans] = useState([]);
   const [statsError, setStatsError] = useState("");
+  const [departmentRefreshKey, setDepartmentRefreshKey] = useState(0);
 
   const handleLogout = () => {
     clearAuthSession();
@@ -69,10 +70,22 @@ export default function AdminDashboard() {
       return;
     }
 
-    const socket = createSocketClient();
+    const socket = createSocketClient({ token: auth.token });
+
+    socket.on("connect", () => {
+      socket.emit("admin:subscribe");
+    });
 
     socket.on("scan:created", (scan) => {
       setLiveScans((previous) => [scan, ...previous].slice(0, 20));
+    });
+
+    socket.on("stats:updated", (nextStats) => {
+      setStats(nextStats);
+    });
+
+    socket.on("department-stats:refresh", () => {
+      setDepartmentRefreshKey((value) => value + 1);
     });
 
     return () => {
@@ -201,7 +214,10 @@ export default function AdminDashboard() {
 
           {/* 2. Charts Section */}
           <section className="grid grid-cols-1 lg:grid-cols-12 gap-3 md:gap-4 lg:gap-6">
-            <DepartmentChart token={auth?.token} />
+            <DepartmentChart
+              token={auth?.token}
+              refreshKey={departmentRefreshKey}
+            />
             <GownLogistics stats={stats} />
           </section>
 

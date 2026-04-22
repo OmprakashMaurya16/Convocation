@@ -1,6 +1,7 @@
 const Student = require("../models/student.model.js");
 const ScanLog = require("../models/scanLog.model.js");
 const SeatOverride = require("../models/seatOverride.model.js");
+const { getIO, emitToAdmins } = require("../socket.js");
 
 const SCAN_TYPE_LOCATION = {
   ENTRY: "Entry Gate",
@@ -180,35 +181,48 @@ const getDepartmentStats = async (req, res) => {
 
 const resetSeatAllocations = async (req, res) => {
   try {
-    // Next-day reset for the full pipeline:
+    // Seat-only reset (preserves historical registration + stage data):
     // - Clear seat assignments
-    // - Return candidates back to REGISTERED so Entry scan works again
-    // - Clear stage timestamps
-    // - Reset gown issued/returned flags
-    const [clearedSeatsResult, resetPipelineResult, clearedOverridesResult] =
-      await Promise.all([
-        Student.updateMany({}, { $unset: { seat: "" } }),
-        Student.updateMany(
-          {},
-          {
-            $set: {
-              state: "REGISTERED",
-              "timestamps.checkedInAt": null,
-              "timestamps.seatedAt": null,
-              "timestamps.gownIssuedAt": null,
-              "timestamps.returnedAt": null,
-              "gown.issued": false,
-              "gown.returned": false,
+    // - Clear seat overrides
+    const [clearedSeatsResult, clearedOverridesResult] = await Promise.all([
+      Student.updateMany({}, { $unset: { seat: "" } }),
+      SeatOverride.deleteMany({}),
+    ]);
+
+    if (getIO()) {
+      emitToAdmins("seating:refresh", { reason: "reset" });
+
+      const [total, checkedIn, seated, gownIssued, completed] =
+        await Promise.all([
+          Student.countDocuments(),
+          Student.countDocuments({
+            state: {
+              $in: ["CHECKED_IN", "SEATED", "GOWN_ISSUED", "COMPLETED"],
             },
-          },
-        ),
-        SeatOverride.deleteMany({}),
-      ]);
+          }),
+          Student.countDocuments({
+            state: { $in: ["SEATED", "GOWN_ISSUED", "COMPLETED"] },
+          }),
+          Student.countDocuments({
+            state: { $in: ["GOWN_ISSUED", "COMPLETED"] },
+          }),
+          Student.countDocuments({ state: "COMPLETED" }),
+        ]);
+
+      emitToAdmins("stats:updated", {
+        total,
+        checkedIn,
+        seated,
+        gownIssued,
+        completed,
+      });
+      emitToAdmins("department-stats:refresh", { ok: true });
+    }
 
     res.json({
       success: true,
       clearedSeats: clearedSeatsResult?.modifiedCount ?? 0,
-      resetToRegistered: resetPipelineResult?.modifiedCount ?? 0,
+      resetToRegistered: 0,
       clearedOverrides: clearedOverridesResult?.deletedCount ?? 0,
     });
   } catch (error) {
@@ -317,6 +331,14 @@ const setSeatOverride = async (req, res) => {
 
     if (normalizedStatus === "empty") {
       await SeatOverride.deleteOne({ seatId: normalizedSeatId });
+
+      if (getIO()) {
+        emitToAdmins("seating:refresh", {
+          reason: "override",
+          seatId: normalizedSeatId,
+        });
+      }
+
       return res.json({
         success: true,
         seatId: normalizedSeatId,
@@ -329,6 +351,13 @@ const setSeatOverride = async (req, res) => {
       { $set: { status: normalizedStatus } },
       { new: true, upsert: true },
     );
+
+    if (getIO()) {
+      emitToAdmins("seating:refresh", {
+        reason: "override",
+        seatId: override.seatId,
+      });
+    }
 
     res.json({
       success: true,
