@@ -10,6 +10,7 @@ export default function DepartmentChart({ token, refreshKey = 0 }) {
     const fetchDepartmentStats = async () => {
       try {
         setLoading(true);
+        console.log("Fetching department stats with refreshKey:", refreshKey);
 
         if (!token) {
           throw new Error("No authentication token found");
@@ -18,6 +19,7 @@ export default function DepartmentChart({ token, refreshKey = 0 }) {
         const data = await apiRequest("/api/admin/department-stats", {
           token,
         });
+        console.log("Department stats fetched:", data);
         setDepartments(Array.isArray(data) ? data : []);
         setError(null);
       } catch (err) {
@@ -78,21 +80,23 @@ export default function DepartmentChart({ token, refreshKey = 0 }) {
         </div>
       </div>
 
-      <div className="flex items-end justify-between h-40 xs:h-48 sm:h-56 lg:h-64 gap-1 xs:gap-1.5 md:gap-2 lg:gap-4 px-1 xs:px-2 overflow-x-auto pb-2">
+      <div className="flex items-end justify-between h-40 xs:h-48 sm:h-56 lg:h-64 gap-1 xs:gap-1.5 md:gap-2 lg:gap-4 px-1 xs:px-2 overflow-x-auto pb-2 bg-surface-container rounded">
         {departments.map((dept) => (
           <div
             key={dept.name}
-            className="flex-1 min-w-[24px] xs:min-w-[32px] md:min-w-[40px] flex flex-col items-center gap-1 xs:gap-1.5 md:gap-2 group"
+            className="flex-1 min-w-[24px] xs:min-w-[32px] md:min-w-[40px] flex flex-col items-center justify-end gap-1 xs:gap-1.5 md:gap-2 group h-full"
             title={`${dept.name}: ${dept.presentCount}/${dept.totalExpected} students`}
           >
-            <div className="relative w-full h-full flex flex-col justify-end gap-0.5 xs:gap-1">
-              <div className="absolute inset-x-0 bottom-0 bg-surface-container-low rounded-t w-full h-[100%]"></div>
+            {/* Bar container with background */}
+            <div className="w-full h-full bg-surface-container-low rounded-t flex flex-col justify-end relative">
+              {/* Colored bar showing percentage */}
               <div
-                className="relative bg-primary rounded-t w-full transition-all group-hover:brightness-110"
+                className="w-full bg-primary rounded-t transition-all group-hover:brightness-110"
                 style={{ height: `${Math.max(dept.present, 5)}%` }}
               ></div>
             </div>
-            <span className="text-[7px] xs:text-[8px] sm:text-[9px] md:text-[10px] font-bold text-outline uppercase tracking-tighter whitespace-nowrap">
+            {/* Department label */}
+            <span className="text-[7px] xs:text-[8px] sm:text-[9px] md:text-[10px] font-bold text-outline uppercase tracking-tighter whitespace-nowrap flex-shrink-0">
               {dept.name}
             </span>
           </div>

@@ -116,10 +116,17 @@ const scanQR = async (req, res) => {
         }),
         studentId: student.studentId,
         name: student.name,
+        department: student.department,
         stage: scanType,
         status: valid ? "SUCCESS" : "REJECTED",
         location: SCAN_TYPE_LOCATION[scanType] || "Scanner",
       };
+
+      console.log("Emitting scan created event:", {
+        studentId: student.studentId,
+        name: student.name,
+        studentObjectId: student._id,
+      });
 
       // Admin-only live feed
       emitToAdmins("scan:created", scanPayload);
@@ -176,6 +183,14 @@ const scanQR = async (req, res) => {
             Student.countDocuments({ state: "COMPLETED" }),
           ]);
 
+        console.log("[scanQR] Emitting stats:updated -", {
+          total,
+          checkedIn,
+          seated,
+          gownIssued,
+          completed,
+        });
+
         emitToAdmins("stats:updated", {
           total,
           checkedIn,
@@ -185,6 +200,11 @@ const scanQR = async (req, res) => {
         });
 
         // Department chart depends on "present" counts, so refresh it on any valid scan.
+        console.log("[scanQR] Emitting department-stats:refresh for student:", {
+          studentId: student.studentId,
+          department: student.department,
+          state: student.state,
+        });
         emitToAdmins("department-stats:refresh", { ok: true });
       }
     }

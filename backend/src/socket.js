@@ -32,10 +32,14 @@ const initSocket = (httpServer) => {
     }
 
     socket.on("admin:subscribe", () => {
+      console.log("Admin subscribe request from socket:", socket.id);
+      console.log("Socket user:", socket.user);
       if (socket.user?.role === "ADMIN") {
         socket.join(ADMIN_ROOM);
+        console.log("Admin socket joined ADMIN_ROOM. Room members:", io.sockets.adapter.rooms.get(ADMIN_ROOM)?.size || 0);
         socket.emit("admin:subscribed", { ok: true });
       } else {
+        console.warn("Non-admin tried to subscribe:", socket.user);
         socket.emit("admin:subscribed", {
           ok: false,
           message: "Unauthorized",
@@ -76,7 +80,12 @@ const initSocket = (httpServer) => {
 const getIO = () => io;
 
 const emitToAdmins = (event, data) => {
-  if (!io) return;
+  if (!io) {
+    console.warn("Socket.io not initialized when trying to emit:", event);
+    return;
+  }
+  const adminCount = io.sockets.adapter.rooms.get(ADMIN_ROOM)?.size || 0;
+  console.log(`Emitting "${event}" to ${adminCount} admin(s)`, data);
   io.to(ADMIN_ROOM).emit(event, data);
 };
 
