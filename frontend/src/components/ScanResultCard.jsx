@@ -4,6 +4,7 @@ export default function ScanResultCard({
   time,
   student,
   idNumber,
+  seat,
   nextPhase,
   nextPhaseIcon,
   show,
@@ -56,6 +57,14 @@ export default function ScanResultCard({
                 </span>
                 <span className="font-body text-sm font-semibold text-white sm:text-right md:text-base">
                   {idNumber}
+                </span>
+              </div>
+            )}
+            {seat && (
+              <div className="grid grid-cols-1 gap-1 border-b border-white/15 py-3 sm:grid-cols-[110px_1fr] sm:gap-3">
+                <span className="font-label text-sm text-white/75">Seat</span>
+                <span className="font-body text-sm font-semibold text-white sm:text-right md:text-base">
+                  {seat}
                 </span>
               </div>
             )}

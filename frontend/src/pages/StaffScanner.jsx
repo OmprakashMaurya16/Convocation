@@ -14,10 +14,6 @@ const SCANNER_MODES = {
     counter: "Entry Gate 1",
     scanType: "ENTRY",
   },
-  seating: {
-    counter: "Seating Station B-5",
-    scanType: "SEATING",
-  },
   gown: {
     counter: "Gown Counter A-2",
     scanType: "GOWN",
@@ -48,7 +44,11 @@ export default function StaffScanner() {
   const navigate = useNavigate();
   const auth = useMemo(() => getAuthSession(), []);
   const initialMode =
-    auth?.role && auth.role !== "ADMIN" ? auth.role.toLowerCase() : "entry";
+    auth?.role && auth.role !== "ADMIN"
+      ? auth.role === "SEATING"
+        ? "entry"
+        : auth.role.toLowerCase()
+      : "entry";
   const [activeMode, setActiveMode] = useState(
     SCANNER_MODES[initialMode] ? initialMode : "entry",
   );
@@ -111,8 +111,10 @@ export default function StaffScanner() {
     auth?.role === "ADMIN"
       ? undefined
       : auth?.role
-        ? [auth.role.toLowerCase()]
+        ? [auth.role === "SEATING" ? "entry" : auth.role.toLowerCase()]
         : undefined;
+
+  const hiddenModes = ["seating"];
 
   const submitScan = async (rawToken) => {
     const normalizedToken = normalizeScannedValue(rawToken);
@@ -148,6 +150,12 @@ export default function StaffScanner() {
         STATE_TO_NEXT_PHASE[scanResponse.state] ||
         STATE_TO_NEXT_PHASE.REGISTERED;
 
+      const seatLabel = scanResponse.seat
+        ? scanResponse.seat.replace(/^([A-Z]+)(\d+)$/, "$1-$2")
+        : studentResponse.seat?.section && studentResponse.seat?.number
+          ? `${studentResponse.seat.section}-${studentResponse.seat.number}`
+          : null;
+
       setResult({
         status: scanResponse.success
           ? STATE_LABEL[scanResponse.state] || "SUCCESS"
@@ -156,6 +164,7 @@ export default function StaffScanner() {
         time: new Date().toLocaleTimeString(),
         student: studentResponse.name || "Unknown Student",
         idNumber: normalizedToken,
+        seat: seatLabel,
         nextPhase: nextPhase.label,
         nextPhaseIcon: nextPhase.icon,
       });
@@ -168,6 +177,7 @@ export default function StaffScanner() {
         time: new Date().toLocaleTimeString(),
         student: "Unknown Student",
         idNumber: normalizedToken,
+        seat: null,
         nextPhase: "Verify Student Record",
         nextPhaseIcon: "error",
       });
@@ -348,6 +358,7 @@ export default function StaffScanner() {
                 time={result?.time}
                 student={result?.student}
                 idNumber={result?.idNumber}
+                seat={result?.seat}
                 nextPhase={result?.nextPhase}
                 nextPhaseIcon={result?.nextPhaseIcon}
               />
@@ -361,6 +372,7 @@ export default function StaffScanner() {
         activeMode={activeMode}
         setActiveMode={setActiveMode}
         enabledModes={enabledModes}
+        hiddenModes={hiddenModes}
       />
     </div>
   );

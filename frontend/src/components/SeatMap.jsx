@@ -1,53 +1,90 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
-export default function SeatMap({ className = "" }) {
+export default function SeatMap({
+  className = "",
+  seatStatusById = null,
+  seatInfoById = null,
+  onSeatStatusChange = null,
+}) {
   const [selectedSeat, setSelectedSeat] = useState(null);
-  const [activeSection, setActiveSection] = useState("A");
 
-  const seatRows = {
-    A: [
-      { id: "A1", status: "occupied" },
-      { id: "A2", status: "occupied" },
-      { id: "A3", status: "reserved" },
-      { id: "A4", status: "occupied" },
-      null,
-      { id: "A5", status: "occupied" },
-      { id: "A6", status: "occupied" },
-      { id: "A7", status: "occupied" },
-      { id: "A8", status: "occupied" },
-      null,
-      { id: "A9", status: "empty" },
-      { id: "A10", status: "occupied" },
-    ],
-    B: [
-      { id: "B1", status: "occupied" },
-      { id: "B2", status: "occupied" },
-      { id: "B3", status: "manual" },
-      { id: "B4", status: "occupied" },
-      null,
-      { id: "B5", status: "occupied" },
-      { id: "B6", status: "occupied" },
-      { id: "B7", status: "empty" },
-      { id: "B8", status: "occupied" },
-      null,
-      { id: "B9", status: "occupied" },
-      { id: "B10", status: "occupied" },
-    ],
-    C: [
-      { id: "C1", status: "occupied" },
-      { id: "C2", status: "occupied" },
-      { id: "C3", status: "occupied" },
-      { id: "C4", status: "empty" },
-      null,
-      { id: "C5", status: "occupied" },
-      { id: "C6", status: "occupied" },
-      { id: "C7", status: "occupied" },
-      { id: "C8", status: "occupied" },
-      null,
-      { id: "C9", status: "empty" },
-      { id: "C10", status: "empty" },
-    ],
+  const FRONT_ROWS = ["A", "B", "C", "D", "E", "F", "G", "H", "I"];
+  const SIDE_ROWS = ["J", "K", "L", "M", "N", "O"];
+  const BACK_ROWS = ["P", "Q", "R"];
+
+  const normalizedSeatStatusById = useMemo(() => {
+    if (!seatStatusById || typeof seatStatusById !== "object") return null;
+    return seatStatusById;
+  }, [seatStatusById]);
+
+  const normalizedSeatInfoById = useMemo(() => {
+    if (!seatInfoById || typeof seatInfoById !== "object") return null;
+    return seatInfoById;
+  }, [seatInfoById]);
+
+  const hashSeatId = (seatId) => {
+    let hash = 0;
+    for (let index = 0; index < seatId.length; index += 1) {
+      hash = (hash * 31 + seatId.charCodeAt(index)) % 100000;
+    }
+    return hash;
   };
+
+  // NOTE: Status is currently a deterministic placeholder so the map is usable
+  // before real seat-occupancy data is wired in.
+  const getSeatStatus = (seatId) => {
+    if (normalizedSeatStatusById) {
+      return normalizedSeatStatusById[seatId] || "empty";
+    }
+
+    const hash = hashSeatId(seatId);
+    if (hash % 23 === 0) return "manual";
+    if (hash % 7 === 0) return "reserved";
+    if (hash % 3 === 0) return "occupied";
+    return "empty";
+  };
+
+  const buildSeat = (row, number) => {
+    const id = `${row}${number}`;
+    return { id, status: getSeatStatus(id) };
+  };
+
+  const formatSeatLabel = (seatId) =>
+    String(seatId || "").replace(/^([A-Z]+)(\d+)$/, "$1-$2");
+
+  const getSeatTooltip = (seatId, status) => {
+    const label = formatSeatLabel(seatId);
+
+    if (status === "occupied" && normalizedSeatInfoById?.[seatId]) {
+      const info = normalizedSeatInfoById[seatId];
+      const lines = [
+        `Seat: ${label}`,
+        `Status: Occupied`,
+        info.name ? `Name: ${info.name}` : null,
+        info.studentId ? `ID: ${info.studentId}` : null,
+        info.department ? `Department: ${info.department}` : null,
+        info.phone ? `Phone: ${info.phone}` : null,
+        info.email ? `Email: ${info.email}` : null,
+        info.state ? `State: ${info.state}` : null,
+      ].filter(Boolean);
+      return lines.join("\n");
+    }
+
+    if (status === "reserved") {
+      return `Seat: ${label}\nStatus: Reserved`;
+    }
+
+    if (status === "manual") {
+      return `Seat: ${label}\nStatus: Flagged`;
+    }
+
+    return `Seat: ${label}\nStatus: Empty`;
+  };
+
+  const buildRow = (row, count, startNumber = 1) =>
+    Array.from({ length: count }, (_, idx) =>
+      buildSeat(row, startNumber + idx),
+    );
 
   const getSeatColor = (status) => {
     switch (status) {
@@ -94,23 +131,6 @@ export default function SeatMap({ className = "" }) {
             Flag
           </span>
         </div>
-
-        {/* Section Buttons */}
-        <div className="ml-auto flex gap-1 xs:gap-1.5 md:gap-2 flex-shrink-0">
-          {["A", "B", "C"].map((section) => (
-            <button
-              key={section}
-              onClick={() => setActiveSection(section)}
-              className={`px-2 xs:px-2.5 md:px-3 py-1 xs:py-1.5 rounded-lg text-[7px] xs:text-[8px] sm:text-xs md:text-sm font-bold transition-all touch-none min-h-[44px] min-w-[44px] flex items-center justify-center md:min-h-auto md:min-w-auto ${
-                activeSection === section
-                  ? "bg-surface-container-low text-primary"
-                  : "bg-white text-slate-400 border border-outline-variant/20 hover:bg-surface-container-low"
-              }`}
-            >
-              {section}
-            </button>
-          ))}
-        </div>
       </div>
 
       {/* Seat Grid Container */}
@@ -122,31 +142,122 @@ export default function SeatMap({ className = "" }) {
           </span>
         </div>
 
-        {/* Seat Rows */}
-        <div className="flex flex-col gap-1 xs:gap-1.5 md:gap-3 lg:gap-4">
-          {[activeSection].map((rowLabel) => (
-            <div
-              key={rowLabel}
-              className="flex gap-1 xs:gap-1.5 md:gap-2 lg:gap-3 justify-center flex-wrap"
-            >
-              {seatRows[rowLabel].map((seat, idx) =>
-                seat ? (
+        <div className="flex flex-col items-center w-full [--seat-size:20px] xs:[--seat-size:24px] md:[--seat-size:28px] lg:[--seat-size:32px]">
+          {/* Front Block (A–I, 1–17) */}
+          <div className="flex flex-col gap-1.5 xs:gap-2 md:gap-2.5 lg:gap-3">
+            {FRONT_ROWS.map((row) => (
+              <div
+                key={row}
+                className="grid gap-1 xs:gap-1.5 md:gap-2 place-items-center"
+                style={{
+                  gridTemplateColumns: "repeat(17, var(--seat-size))",
+                }}
+              >
+                {buildRow(row, 17).map((seat) => (
                   <button
                     key={seat.id}
                     onClick={() => setSelectedSeat(seat.id)}
-                    className={`w-5 h-5 xs:w-6 xs:h-6 md:w-7 md:h-7 lg:w-8 lg:h-8 rounded-lg flex items-center justify-center text-[6px] xs:text-[7px] md:text-[9px] lg:text-[10px] font-bold cursor-pointer hover:scale-110 transition-transform shadow-sm touch-none min-h-[44px] min-w-[44px] flex items-center justify-center md:min-h-auto md:min-w-auto ${getSeatColor(seat.status)}`}
+                    title={getSeatTooltip(seat.id, seat.status)}
+                    className={`w-[var(--seat-size)] h-[var(--seat-size)] rounded-lg flex items-center justify-center text-[6px] xs:text-[7px] md:text-[9px] lg:text-[10px] font-bold cursor-pointer hover:scale-110 transition-transform shadow-sm touch-none ${getSeatColor(seat.status)}`}
                   >
                     {seat.id}
                   </button>
-                ) : (
+                ))}
+              </div>
+            ))}
+          </div>
+
+          {/* Spacing between blocks */}
+          <div className="h-6 xs:h-8 md:h-12 lg:h-16" />
+
+          {/* Back Blocks (J–O sides + EXIT + P–R rear rows) */}
+          <div className="flex flex-col items-center gap-4 xs:gap-6 md:gap-8 lg:gap-10">
+            <div
+              className="grid gap-4 xs:gap-6 md:gap-10 items-start"
+              style={{ gridTemplateColumns: "auto auto auto" }}
+            >
+              {/* Left Side (J–O, 1–5) */}
+              <div className="flex flex-col gap-1.5 xs:gap-2 md:gap-2.5">
+                {SIDE_ROWS.map((row) => (
                   <div
-                    key={`aisle-${rowLabel}-${idx}`}
-                    className="w-2 xs:w-3 md:w-6 lg:w-12"
-                  ></div>
-                ),
-              )}
+                    key={`left-${row}`}
+                    className="grid gap-1 xs:gap-1.5 md:gap-2 place-items-center"
+                    style={{
+                      gridTemplateColumns: "repeat(5, var(--seat-size))",
+                    }}
+                  >
+                    {buildRow(row, 5, 1).map((seat) => (
+                      <button
+                        key={seat.id}
+                        onClick={() => setSelectedSeat(seat.id)}
+                        title={getSeatTooltip(seat.id, seat.status)}
+                        className={`w-[var(--seat-size)] h-[var(--seat-size)] rounded-lg flex items-center justify-center text-[6px] xs:text-[7px] md:text-[9px] lg:text-[10px] font-bold cursor-pointer hover:scale-110 transition-transform shadow-sm touch-none ${getSeatColor(seat.status)}`}
+                      >
+                        {seat.id}
+                      </button>
+                    ))}
+                  </div>
+                ))}
+              </div>
+
+              {/* Exit Block */}
+              <div className="flex items-center justify-center">
+                <div className="bg-primary-container text-white flex items-center justify-center rounded-xl shadow-lg w-[calc(var(--seat-size)*6)] h-[calc(var(--seat-size)*6)]">
+                  <span className="text-[10px] xs:text-xs md:text-sm font-headline font-extrabold tracking-widest">
+                    EXIT
+                  </span>
+                </div>
+              </div>
+
+              {/* Right Side (J–O, 13–17) */}
+              <div className="flex flex-col gap-1.5 xs:gap-2 md:gap-2.5">
+                {SIDE_ROWS.map((row) => (
+                  <div
+                    key={`right-${row}`}
+                    className="grid gap-1 xs:gap-1.5 md:gap-2 place-items-center"
+                    style={{
+                      gridTemplateColumns: "repeat(5, var(--seat-size))",
+                    }}
+                  >
+                    {buildRow(row, 5, 13).map((seat) => (
+                      <button
+                        key={seat.id}
+                        onClick={() => setSelectedSeat(seat.id)}
+                        title={getSeatTooltip(seat.id, seat.status)}
+                        className={`w-[var(--seat-size)] h-[var(--seat-size)] rounded-lg flex items-center justify-center text-[6px] xs:text-[7px] md:text-[9px] lg:text-[10px] font-bold cursor-pointer hover:scale-110 transition-transform shadow-sm touch-none ${getSeatColor(seat.status)}`}
+                      >
+                        {seat.id}
+                      </button>
+                    ))}
+                  </div>
+                ))}
+              </div>
             </div>
-          ))}
+
+            {/* Rear Rows (P–R, 1–17 no gap) */}
+            <div className="flex flex-col gap-1.5 xs:gap-2 md:gap-2.5">
+              {BACK_ROWS.map((row) => (
+                <div
+                  key={`rear-${row}`}
+                  className="grid gap-1 xs:gap-1.5 md:gap-2 place-items-center"
+                  style={{
+                    gridTemplateColumns: "repeat(17, var(--seat-size))",
+                  }}
+                >
+                  {buildRow(row, 17, 1).map((seat) => (
+                    <button
+                      key={seat.id}
+                      onClick={() => setSelectedSeat(seat.id)}
+                      title={getSeatTooltip(seat.id, seat.status)}
+                      className={`w-[var(--seat-size)] h-[var(--seat-size)] rounded-lg flex items-center justify-center text-[6px] xs:text-[7px] md:text-[9px] lg:text-[10px] font-bold cursor-pointer hover:scale-110 transition-transform shadow-sm touch-none ${getSeatColor(seat.status)}`}
+                    >
+                      {seat.id}
+                    </button>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Background Icon */}
@@ -170,17 +281,44 @@ export default function SeatMap({ className = "" }) {
           </div>
           <div className="hidden md:block h-8 w-px bg-white/10"></div>
           <div className="flex gap-1 xs:gap-2 md:gap-3 w-full md:w-auto">
-            <button className="flex-1 md:flex-initial flex items-center justify-center gap-1 xs:gap-2 text-[8px] xs:text-[9px] md:text-xs font-bold px-2 xs:px-3 md:px-4 py-1.5 xs:py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors whitespace-nowrap touch-none min-h-[44px] md:min-h-auto">
+            <button
+              type="button"
+              onClick={() => {
+                onSeatStatusChange?.(selectedSeat, "reserved");
+                setSelectedSeat(null);
+              }}
+              className="flex-1 md:flex-initial flex items-center justify-center gap-1 xs:gap-2 text-[8px] xs:text-[9px] md:text-xs font-bold px-2 xs:px-3 md:px-4 py-1.5 xs:py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors whitespace-nowrap touch-none min-h-[44px] md:min-h-auto"
+            >
               <span className="material-symbols-outlined text-xs md:text-sm">
-                swap_horiz
+                event_seat
               </span>
-              <span className="hidden sm:inline">Reassign</span>
+              <span className="hidden sm:inline">Reserve</span>
             </button>
-            <button className="flex-1 md:flex-initial flex items-center justify-center gap-1 xs:gap-2 text-[8px] xs:text-[9px] md:text-xs font-bold px-2 xs:px-3 md:px-4 py-1.5 xs:py-2 bg-error text-white hover:opacity-90 rounded-lg transition-colors whitespace-nowrap touch-none min-h-[44px] md:min-h-auto">
+            <button
+              type="button"
+              onClick={() => {
+                onSeatStatusChange?.(selectedSeat, "manual");
+                setSelectedSeat(null);
+              }}
+              className="flex-1 md:flex-initial flex items-center justify-center gap-1 xs:gap-2 text-[8px] xs:text-[9px] md:text-xs font-bold px-2 xs:px-3 md:px-4 py-1.5 xs:py-2 bg-error text-white hover:opacity-90 rounded-lg transition-colors whitespace-nowrap touch-none min-h-[44px] md:min-h-auto"
+            >
               <span className="material-symbols-outlined text-xs md:text-sm">
                 warning
               </span>
-              <span className="hidden sm:inline">Override</span>
+              <span className="hidden sm:inline">Flag</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onSeatStatusChange?.(selectedSeat, "empty");
+                setSelectedSeat(null);
+              }}
+              className="flex-1 md:flex-initial flex items-center justify-center gap-1 xs:gap-2 text-[8px] xs:text-[9px] md:text-xs font-bold px-2 xs:px-3 md:px-4 py-1.5 xs:py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors whitespace-nowrap touch-none min-h-[44px] md:min-h-auto"
+            >
+              <span className="material-symbols-outlined text-xs md:text-sm">
+                close
+              </span>
+              <span className="hidden sm:inline">Empty</span>
             </button>
           </div>
         </div>

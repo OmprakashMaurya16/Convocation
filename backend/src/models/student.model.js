@@ -66,6 +66,13 @@ const studentSchema = new mongoose.Schema(
   },
 );
 
+// Ensure a seat can only be assigned to one student at a time.
+// Sparse index allows many students with no seat assigned.
+studentSchema.index(
+  { "seat.section": 1, "seat.number": 1 },
+  { unique: true, sparse: true },
+);
+
 const Student = mongoose.model("Student", studentSchema);
 
 module.exports = Student;

@@ -1,6 +1,7 @@
 const Student = require("../models/student.model.js");
 const ScanLog = require("../models/scanLog.model.js");
 const { getIO, emitToStudent } = require("../socket.js");
+const { findNextAvailableSeat } = require("../utils/seatAllocator.js");
 
 const SCAN_TYPE_LOCATION = {
   ENTRY: "Entry Gate",
@@ -28,7 +29,12 @@ const scanQR = async (req, res) => {
         .json({ success: false, message: "Student not found" });
     }
 
-    if (staff.role !== scanType && staff.role !== "ADMIN") {
+    const isAuthorizedForScanType =
+      staff.role === "ADMIN" ||
+      staff.role === scanType ||
+      (scanType === "ENTRY" && staff.role === "SEATING");
+
+    if (!isAuthorizedForScanType) {
       return res.status(403).json({
         message: "Unauthorized scan type for this role",
       });
@@ -38,13 +44,38 @@ const scanQR = async (req, res) => {
     let message = "";
 
     if (scanType === "ENTRY" && student.state === "REGISTERED") {
-      student.state = "CHECKED_IN";
-      student.timestamps.checkedInAt = new Date();
-      valid = true;
+      const now = new Date();
+
+      const seat = await findNextAvailableSeat();
+      if (!seat) {
+        message = "No available seats";
+      } else {
+        student.seat = seat;
+        student.state = "SEATED";
+        student.timestamps.checkedInAt = now;
+        student.timestamps.seatedAt = now;
+        valid = true;
+        message = `Seat assigned: ${seat.section}${seat.number}`;
+      }
     } else if (scanType === "SEATING" && student.state === "CHECKED_IN") {
+      const now = new Date();
       student.state = "SEATED";
-      student.timestamps.seatedAt = new Date();
-      valid = true;
+      student.timestamps.seatedAt = now;
+
+      // Backward-compatible: if someone is still in CHECKED_IN, seat them here.
+      if (!student.seat?.section || !student.seat?.number) {
+        const seat = await findNextAvailableSeat();
+        if (!seat) {
+          message = "No available seats";
+          valid = false;
+        } else {
+          student.seat = seat;
+          valid = true;
+          message = `Seat assigned: ${seat.section}${seat.number}`;
+        }
+      } else {
+        valid = true;
+      }
     } else if (scanType === "GOWN" && student.state === "SEATED") {
       student.state = "GOWN_ISSUED";
       student.gown.issued = true;
@@ -97,10 +128,16 @@ const scanQR = async (req, res) => {
       }
     }
 
+    const seatId =
+      student.seat?.section && student.seat?.number
+        ? `${student.seat.section}${student.seat.number}`
+        : null;
+
     res.json({
       success: valid,
-      message: valid ? "Scan successful" : message,
+      message: valid ? message || "Scan successful" : message,
       state: student.state,
+      seat: seatId,
     });
   } catch (error) {
     console.error(error.message);

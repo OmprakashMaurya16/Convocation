@@ -5,6 +5,11 @@ const {
   getRecentScans,
   getCandidates,
   getDepartmentStats,
+  resetSeatAllocations,
+  getSeatOccupancy,
+  getSeatOverrides,
+  setSeatOverride,
+  getSeatingReport,
 } = require("../controllers/admin.controller.js");
 const { allowRoles } = require("../middlewares/role.middleware.js");
 
@@ -19,5 +24,14 @@ router.get(
   allowRoles("ADMIN"),
   getDepartmentStats,
 );
+
+router.post("/reset-seats", protect, allowRoles("ADMIN"), resetSeatAllocations);
+
+router.get("/seat-occupancy", protect, allowRoles("ADMIN"), getSeatOccupancy);
+
+router.get("/seat-overrides", protect, allowRoles("ADMIN"), getSeatOverrides);
+router.post("/seat-overrides", protect, allowRoles("ADMIN"), setSeatOverride);
+
+router.get("/seating-report", protect, allowRoles("ADMIN"), getSeatingReport);
 
 module.exports = router;
