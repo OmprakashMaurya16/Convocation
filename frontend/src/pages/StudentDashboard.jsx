@@ -44,13 +44,13 @@ const getCurrentAction = (state, seatSection, seatNumber) => {
         ? `You are checked in. Your seat is ${seatLabel}. Please proceed to the Robe Counter for gown issuance.`
         : "You are checked in. Please proceed to the Robe Counter for gown issuance.";
     case "GOWN_ISSUED":
-      return "Your gown has been issued. 🎓 Please proceed to the auditorium entry for seating verification.";
+      return `Your gown has been issued successfully. Kindly proceed to your designated seat: Seat No. ${seatLabel}.`;
     case "SEATED":
       return seatLabel
-        ? `You are seated at Seat No. ${seatLabel}. Please remain seated and wait for your turn to receive your degree.`
+        ? `You are now seated at Seat No. ${seatLabel}. Please remain seated and wait for your turn to receive your degree.`
         : "You are now seated. Please remain seated and wait for your turn to receive your degree.";
     case "COMPLETED":
-      return "Your gown has been successfully returned. Please proceed to the Canteen Token Desk to collect your token.";
+      return "Your gown has been successfully returned. You may now proceed to the food counter.";
     case "CANTEEN_TOKEN_ISSUED":
       return "🎉 Congratulations, Graduate! Enjoy your meal and have a wonderful celebration!";
     default:

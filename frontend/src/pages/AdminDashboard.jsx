@@ -35,32 +35,18 @@ export default function AdminDashboard() {
   const handleResetEvent = async () => {
     if (!auth?.token) return;
 
-    const label = window.prompt(
-      "Optional: enter a session/department label (e.g., CSE Morning / ECE Afternoon)",
-      "",
-    );
-
-    // Cancel = do nothing.
-    if (label === null) return;
-
     setIsResettingEvent(true);
     setAdminActionMessage("");
     setAdminActionError("");
 
     try {
-      const response = await apiRequest("/api/admin/reset-event", {
+      await apiRequest("/api/admin/reset-event", {
         method: "POST",
         token: auth.token,
-        body: {
-          label,
-        },
       });
 
-      const appliedLabel = response?.label ? String(response.label).trim() : "";
       setAdminActionMessage(
-        appliedLabel
-          ? `Event reset: session started (${appliedLabel}). Only registrations after this reset will be counted (no data deleted).`
-          : "Event reset: a new session window started. Only registrations after this reset will be counted (no data deleted).",
+        "Event reset: a new session window started. Only registrations after this reset will be counted (no data deleted).",
       );
     } catch (error) {
       setAdminActionError(error.message || "Failed to reset event");
