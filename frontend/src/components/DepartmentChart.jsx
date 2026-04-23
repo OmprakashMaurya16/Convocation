@@ -8,33 +8,33 @@ export default function DepartmentChart({ token, refreshKey = 0 }) {
 
   const getDeptColors = (deptName) => {
     // Use only existing theme tokens (see tailwind.config.js) to keep visuals consistent.
-    // Returns Tailwind class names for the bar front gradient + side face.
+    // Returns Tailwind class names for the bar fill.
     const palette = {
       INFT: {
-        front: "bg-gradient-to-t from-primary to-primary-fixed-dim",
+        front: "bg-primary",
         side: "bg-primary",
       },
       CMPN: {
-        front: "bg-gradient-to-t from-secondary to-secondary-fixed",
+        front: "bg-secondary",
         side: "bg-secondary",
       },
       EXTC: {
-        front: "bg-gradient-to-t from-surface-tint to-primary-fixed",
+        front: "bg-surface-tint",
         side: "bg-surface-tint",
       },
       EXCS: {
-        front: "bg-gradient-to-t from-tertiary-container to-tertiary-fixed-dim",
+        front: "bg-tertiary-container",
         side: "bg-tertiary-container",
       },
       BIOMD: {
-        front: "bg-gradient-to-t from-error to-error-container",
+        front: "bg-error",
         side: "bg-error",
       },
     };
 
     return (
       palette[String(deptName || "").toUpperCase()] || {
-        front: "bg-gradient-to-t from-primary to-primary-fixed-dim",
+        front: "bg-primary",
         side: "bg-primary",
       }
     );
@@ -138,8 +138,17 @@ export default function DepartmentChart({ token, refreshKey = 0 }) {
 
             <div className="relative z-10 flex items-end justify-between h-full gap-4 xs:gap-6 md:gap-8 lg:gap-10">
               {departments.map((dept) => {
-                const presentPct = Number.isFinite(dept?.present)
-                  ? Math.max(0, Math.min(100, dept.present))
+                const presentRaw = Number.parseFloat(dept?.present);
+                const presentPct = Number.isFinite(presentRaw)
+                  ? Math.max(
+                      0,
+                      Math.min(
+                        100,
+                        presentRaw <= 1 && presentRaw > 0
+                          ? presentRaw * 100
+                          : presentRaw,
+                      ),
+                    )
                   : 0;
                 const presentHeight =
                   presentPct === 0 ? "3px" : `${Math.max(presentPct, 2)}%`;
@@ -160,13 +169,13 @@ export default function DepartmentChart({ token, refreshKey = 0 }) {
                       <div className="absolute -bottom-1 w-12 xs:w-14 h-2 bg-outline-variant opacity-30 blur-sm" />
 
                       {/* Present bar (with slight 3D side face) */}
-                      <div className="relative w-10 xs:w-11 md:w-12">
+                      <div className="relative w-10 xs:w-11 md:w-12 h-full">
                         <div
                           className={`absolute bottom-0 left-0 w-[80%] rounded-sm ${colors.front} group-hover:brightness-110 transition-all duration-300`}
                           style={{ height: presentHeight }}
                         />
                         <div
-                          className={`absolute bottom-0 left-[80%] w-[20%] rounded-sm ${colors.side} opacity-90 transition-all duration-300`}
+                          className={`absolute bottom-0 left-[80%] w-[20%] rounded-sm ${colors.side} transition-all duration-300`}
                           style={{ height: presentHeight }}
                         />
 
