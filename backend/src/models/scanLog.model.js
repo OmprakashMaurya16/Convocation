@@ -10,7 +10,7 @@ const scanLogSchema = new mongoose.Schema(
 
     scanType: {
       type: String,
-      enum: ["ENTRY", "SEATING", "GOWN", "RETURN"],
+      enum: ["ENTRY", "SEATING", "GOWN", "RETURN", "CANTEEN"],
       required: true,
     },
 
