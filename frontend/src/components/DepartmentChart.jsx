@@ -141,7 +141,8 @@ export default function DepartmentChart({ token, refreshKey = 0 }) {
                 const presentPct = Number.isFinite(dept?.present)
                   ? Math.max(0, Math.min(100, dept.present))
                   : 0;
-                const presentHeightPct = Math.max(presentPct, 2);
+                const presentHeight =
+                  presentPct === 0 ? "3px" : `${Math.max(presentPct, 2)}%`;
                 const colors = getDeptColors(dept?.name);
 
                 return (
@@ -153,7 +154,7 @@ export default function DepartmentChart({ token, refreshKey = 0 }) {
                   >
                     <div className="flex-1 w-full flex items-end justify-center relative">
                       {/* Expected track (100%) */}
-                      <div className="absolute bottom-0 h-full w-10 xs:w-11 md:w-12 rounded-sm bg-surface-variant ring-1 ring-outline-variant opacity-70" />
+                      <div className="absolute bottom-0 h-full w-10 xs:w-11 md:w-12 rounded-sm bg-transparent ring-1 ring-outline-variant opacity-40" />
 
                       {/* Shadow */}
                       <div className="absolute -bottom-1 w-12 xs:w-14 h-2 bg-outline-variant opacity-30 blur-sm" />
@@ -162,11 +163,11 @@ export default function DepartmentChart({ token, refreshKey = 0 }) {
                       <div className="relative w-10 xs:w-11 md:w-12">
                         <div
                           className={`absolute bottom-0 left-0 w-[80%] rounded-sm ${colors.front} group-hover:brightness-110 transition-all duration-300`}
-                          style={{ height: `${presentHeightPct}%` }}
+                          style={{ height: presentHeight }}
                         />
                         <div
                           className={`absolute bottom-0 left-[80%] w-[20%] rounded-sm ${colors.side} opacity-90 transition-all duration-300`}
-                          style={{ height: `${presentHeightPct}%` }}
+                          style={{ height: presentHeight }}
                         />
 
                         {/* value label (hover) */}

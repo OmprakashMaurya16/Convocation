@@ -1,6 +1,6 @@
 export default function Header({ onMenuClick = () => {}, onLogout = null }) {
   return (
-    <header className="sticky top-0 z-10 bg-surface/80 backdrop-blur-md px-2 xs:px-3 sm:px-4 md:px-6 lg:px-8 py-2 xs:py-3 md:py-4 flex flex-col xs:flex-row items-start xs:items-center justify-between border-b border-outline-variant/10 gap-1.5 xs:gap-2 md:gap-4">
+    <header className="sticky top-0 z-50 bg-surface px-2 xs:px-3 sm:px-4 md:px-6 lg:px-8 py-2 xs:py-3 md:py-4 flex flex-col xs:flex-row items-start xs:items-center justify-between border-b border-outline-variant/10 gap-1.5 xs:gap-2 md:gap-4">
       <div className="flex items-center gap-1.5 xs:gap-2 md:gap-4 w-full xs:w-auto">
         {/* Mobile Menu Button */}
         <button
