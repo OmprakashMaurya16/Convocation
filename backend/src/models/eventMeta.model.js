@@ -13,6 +13,11 @@ const eventMetaSchema = new mongoose.Schema(
       required: true,
       default: () => new Date(0),
     },
+    label: {
+      type: String,
+      default: "",
+      trim: true,
+    },
   },
   { timestamps: true },
 );

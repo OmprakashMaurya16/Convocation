@@ -54,7 +54,7 @@ const seedDatabase = async () => {
       {
         name: "Return Staff",
         email: "return@convocation.com",
-        password: "return@Vit",
+        password: "Return@Vit",
         role: "RETURN",
       },
       {

@@ -7,6 +7,8 @@ const {
   setActiveEventStartAt,
   buildActiveEventStudentFilter,
   buildActiveEventLogFilter,
+  getActiveEventLabel,
+  setActiveEventSession,
 } = require("../utils/eventSession.js");
 
 const SCAN_TYPE_LOCATION = {
@@ -20,6 +22,7 @@ const SCAN_TYPE_LOCATION = {
 const getStats = async (req, res) => {
   try {
     const activeSince = await getActiveEventStartAt();
+    const sessionLabel = await getActiveEventLabel();
     const activeFilter = buildActiveEventStudentFilter(activeSince);
 
     const total = await Student.countDocuments(activeFilter);
@@ -64,6 +67,10 @@ const getStats = async (req, res) => {
       gownIssued,
       completed,
       canteenTokenIssued,
+      session: {
+        activeSince,
+        label: sessionLabel,
+      },
     });
   } catch (error) {
     console.error(error.message);
@@ -363,16 +370,26 @@ const getSeatOccupancy = async (req, res) => {
 
     const overrides = await SeatOverride.find({}).select("seatId status");
 
-    const occupiedSeatIds = seatedStudents
-      .map((student) => {
-        const section = String(student.seat?.section || "").trim();
-        const number = String(student.seat?.number || "").trim();
-        if (!section || !number) return null;
-        return `${section}${number}`;
-      })
-      .filter(Boolean);
+    const confirmedSeatIds = [];
+    const pendingSeatIds = [];
 
-    const uniqueOccupied = Array.from(new Set(occupiedSeatIds));
+    for (const student of seatedStudents) {
+      const section = String(student.seat?.section || "").trim();
+      const number = String(student.seat?.number || "").trim();
+      if (!section || !number) continue;
+
+      const seatId = `${section}${number}`;
+      const state = String(student.state || "").trim();
+
+      if (["SEATED", "COMPLETED", "CANTEEN_TOKEN_ISSUED"].includes(state)) {
+        confirmedSeatIds.push(seatId);
+      } else {
+        pendingSeatIds.push(seatId);
+      }
+    }
+
+    const uniqueConfirmed = Array.from(new Set(confirmedSeatIds));
+    const uniquePending = Array.from(new Set(pendingSeatIds));
 
     const seatStudentById = {};
 
@@ -401,7 +418,16 @@ const getSeatOccupancy = async (req, res) => {
       seatStatusById[seatId] = status;
     }
 
-    for (const seatId of uniqueOccupied) {
+    // Pending assignments should NOT look like occupied (green) until seating is confirmed.
+    for (const seatId of uniquePending) {
+      const key = String(seatId);
+      if (seatStatusById[key] === "manual") continue;
+      if (seatStatusById[key] === "reserved") continue;
+      seatStatusById[key] = "reserved";
+    }
+
+    // Confirmed seating always overrides overrides.
+    for (const seatId of uniqueConfirmed) {
       seatStatusById[String(seatId)] = "occupied";
     }
 
@@ -413,8 +439,8 @@ const getSeatOccupancy = async (req, res) => {
     ).length;
 
     res.json({
-      occupied: uniqueOccupied,
-      occupiedCount: uniqueOccupied.length,
+      occupied: uniqueConfirmed,
+      occupiedCount: uniqueConfirmed.length,
       reservedCount,
       flaggedCount,
       seatStatusById,
@@ -534,7 +560,11 @@ const resetEventProgress = async (req, res) => {
   try {
     // Start a NEW session cutoff. Previous members remain stored in DB,
     // but are excluded from the active event views.
-    const activeSince = await setActiveEventStartAt(new Date());
+    const requestedLabel = req?.body?.label;
+    const { activeSince, label } = await setActiveEventSession({
+      activeSince: new Date(),
+      label: requestedLabel,
+    });
     const activeFilter = buildActiveEventStudentFilter(activeSince);
 
     if (getIO()) {
@@ -595,7 +625,7 @@ const resetEventProgress = async (req, res) => {
       emitToAdmins("department-stats:refresh", { ok: true });
     }
 
-    res.json({ success: true, activeSince });
+    res.json({ success: true, activeSince, label });
   } catch (error) {
     console.error(error.message);
     res.status(500).json({ message: "Server error" });

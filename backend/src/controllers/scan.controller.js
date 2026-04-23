@@ -201,6 +201,7 @@ const scanQR = async (req, res) => {
       if (valid && nextSeatId && nextSeatId !== previousSeatId) {
         emitToAdmins("seating:seatAssigned", {
           seatId: nextSeatId,
+          seatStatus: "reserved",
           student: {
             name: student.name,
             studentId: student.studentId,
@@ -208,6 +209,27 @@ const scanQR = async (req, res) => {
             state: student.state,
           },
         });
+      }
+
+      // When seating is confirmed, flip the seat to occupied (green).
+      if (valid && normalizedScanType === "SEATING") {
+        const confirmedSeatId =
+          student.seat?.section && student.seat?.number
+            ? `${student.seat.section}${student.seat.number}`
+            : null;
+
+        if (confirmedSeatId) {
+          emitToAdmins("seating:seatConfirmed", {
+            seatId: confirmedSeatId,
+            seatStatus: "occupied",
+            student: {
+              name: student.name,
+              studentId: student.studentId,
+              department: student.department || null,
+              state: student.state,
+            },
+          });
+        }
       }
 
       if (valid) {

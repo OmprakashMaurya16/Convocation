@@ -113,7 +113,24 @@ export default function SeatingArchitecture({
 
       setSeatStatusById((previous) => ({
         ...(previous || {}),
-        [String(seatId)]: "occupied",
+        [String(seatId)]: payload?.seatStatus || "reserved",
+      }));
+
+      if (payload?.student && typeof payload.student === "object") {
+        setSeatInfoById((previous) => ({
+          ...(previous || {}),
+          [String(seatId)]: payload.student,
+        }));
+      }
+    });
+
+    socket.on("seating:seatConfirmed", (payload) => {
+      const seatId = payload?.seatId;
+      if (!seatId) return;
+
+      setSeatStatusById((previous) => ({
+        ...(previous || {}),
+        [String(seatId)]: payload?.seatStatus || "occupied",
       }));
 
       if (payload?.student && typeof payload.student === "object") {
