@@ -10,18 +10,18 @@ import { createSocketClient } from "../utils/socket";
 const STAGE_ORDER = [
   "REGISTERED",
   "CHECKED_IN",
-  "SEATED",
   "GOWN_ISSUED",
+  "SEATED",
   "COMPLETED",
   "CANTEEN_TOKEN_ISSUED",
 ];
 
 const STAGE_METADATA = {
-  REGISTERED:           { label: "Registered",    icon: "check" },
-  CHECKED_IN:           { label: "Checked-in",    icon: "login" },
-  SEATED:               { label: "Seated",         icon: "chair" },
-  GOWN_ISSUED:          { label: "Robe Issued",    icon: "checkroom" },
-  COMPLETED:            { label: "Robe Return",    icon: "assignment_return" },
+  REGISTERED: { label: "Registered", icon: "check" },
+  CHECKED_IN: { label: "Checked-in", icon: "login" },
+  GOWN_ISSUED: { label: "Robe Issued", icon: "checkroom" },
+  SEATED: { label: "Seated", icon: "chair" },
+  COMPLETED: { label: "Robe Return", icon: "assignment_return" },
   CANTEEN_TOKEN_ISSUED: { label: "Canteen Token", icon: "restaurant" },
 };
 
@@ -32,22 +32,23 @@ const STAGE_METADATA = {
  * @param {string} seatNumber  - seat number, e.g. "12"
  */
 const getCurrentAction = (state, seatSection, seatNumber) => {
-  const hasSeat = seatSection && seatSection !== "-" && seatNumber && seatNumber !== "-";
+  const hasSeat =
+    seatSection && seatSection !== "-" && seatNumber && seatNumber !== "-";
   const seatLabel = hasSeat ? `${seatSection}-${seatNumber}` : null;
 
   switch (state) {
     case "REGISTERED":
       return "Please proceed to the Entry Gate and present your QR code to the staff for check-in.";
     case "CHECKED_IN":
-      return "You are checked in! ✅ Please proceed to the Seating Station where staff will scan your QR and assign your seat.";
+      return seatLabel
+        ? `You are checked in. Your seat is ${seatLabel}. Please proceed to the Robe Counter for gown issuance.`
+        : "You are checked in. Please proceed to the Robe Counter for gown issuance.";
+    case "GOWN_ISSUED":
+      return "Your gown has been issued. 🎓 Please proceed to the auditorium entry for seating verification.";
     case "SEATED":
       return seatLabel
         ? `You are seated at Seat No. ${seatLabel}. Please remain seated and wait for your turn to receive your degree.`
         : "You are now seated. Please remain seated and wait for your turn to receive your degree.";
-    case "GOWN_ISSUED":
-      return seatLabel
-        ? `Your gown has been issued. 🎓 Please return to Seat No. ${seatLabel} and wait for the ceremony to begin.`
-        : "Your gown has been issued. 🎓 Please return to your seat and wait for the ceremony to begin.";
     case "COMPLETED":
       return "Your gown has been successfully returned. Please proceed to the Canteen Token Desk to collect your token.";
     case "CANTEEN_TOKEN_ISSUED":

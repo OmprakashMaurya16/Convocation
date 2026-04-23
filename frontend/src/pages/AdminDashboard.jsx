@@ -22,11 +22,37 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [liveScans, setLiveScans] = useState([]);
   const [statsError, setStatsError] = useState("");
+  const [adminActionMessage, setAdminActionMessage] = useState("");
+  const [adminActionError, setAdminActionError] = useState("");
+  const [isResettingEvent, setIsResettingEvent] = useState(false);
   const [departmentRefreshKey, setDepartmentRefreshKey] = useState(0);
 
   const handleLogout = () => {
     clearAuthSession();
     navigate("/", { replace: true });
+  };
+
+  const handleResetEvent = async () => {
+    if (!auth?.token) return;
+
+    setIsResettingEvent(true);
+    setAdminActionMessage("");
+    setAdminActionError("");
+
+    try {
+      await apiRequest("/api/admin/reset-event", {
+        method: "POST",
+        token: auth.token,
+      });
+
+      setAdminActionMessage(
+        "Event reset: a new session window started. Only registrations after this reset will be counted (no data deleted).",
+      );
+    } catch (error) {
+      setAdminActionError(error.message || "Failed to reset event");
+    } finally {
+      setIsResettingEvent(false);
+    }
   };
 
   useEffect(() => {
@@ -204,6 +230,19 @@ export default function AdminDashboard() {
         <Header
           onMenuClick={() => setSidebarOpen(!sidebarOpen)}
           onLogout={handleLogout}
+          actions={
+            <button
+              type="button"
+              onClick={handleResetEvent}
+              disabled={isResettingEvent}
+              className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold rounded-md border border-outline-variant/30 bg-surface-container text-on-surface-variant transition-colors hover:bg-surface-container-high disabled:cursor-not-allowed disabled:opacity-60 sm:text-xs"
+            >
+              <span className="material-symbols-outlined text-sm">
+                restart_alt
+              </span>
+              {isResettingEvent ? "Resetting..." : "Reset Event"}
+            </button>
+          }
         />
 
         {/* Page Content */}
@@ -211,6 +250,18 @@ export default function AdminDashboard() {
           {statsError ? (
             <div className="rounded-lg border border-error/25 bg-error-container px-3 py-2 text-sm text-on-error-container">
               {statsError}
+            </div>
+          ) : null}
+
+          {adminActionError ? (
+            <div className="rounded-lg border border-error/25 bg-error-container px-3 py-2 text-sm text-on-error-container">
+              {adminActionError}
+            </div>
+          ) : null}
+
+          {adminActionMessage ? (
+            <div className="rounded-lg border border-emerald-600/25 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+              {adminActionMessage}
             </div>
           ) : null}
 

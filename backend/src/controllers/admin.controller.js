@@ -2,6 +2,12 @@ const Student = require("../models/student.model.js");
 const ScanLog = require("../models/scanLog.model.js");
 const SeatOverride = require("../models/seatOverride.model.js");
 const { getIO, emitToAdmins } = require("../socket.js");
+const {
+  getActiveEventStartAt,
+  setActiveEventStartAt,
+  buildActiveEventStudentFilter,
+  buildActiveEventLogFilter,
+} = require("../utils/eventSession.js");
 
 const SCAN_TYPE_LOCATION = {
   ENTRY: "Entry Gate",
@@ -13,11 +19,15 @@ const SCAN_TYPE_LOCATION = {
 
 const getStats = async (req, res) => {
   try {
-    const total = await Student.countDocuments();
+    const activeSince = await getActiveEventStartAt();
+    const activeFilter = buildActiveEventStudentFilter(activeSince);
+
+    const total = await Student.countDocuments(activeFilter);
 
     // Cumulative stage counters (monotonic): once a candidate progresses,
     // they are still considered checked-in / seated for ops reporting.
     const checkedIn = await Student.countDocuments({
+      ...activeFilter,
       state: {
         $in: [
           "CHECKED_IN",
@@ -29,17 +39,21 @@ const getStats = async (req, res) => {
       },
     });
     const seated = await Student.countDocuments({
+      ...activeFilter,
       state: {
         $in: ["SEATED", "GOWN_ISSUED", "COMPLETED", "CANTEEN_TOKEN_ISSUED"],
       },
     });
     const gownIssued = await Student.countDocuments({
+      ...activeFilter,
       state: { $in: ["GOWN_ISSUED", "COMPLETED", "CANTEEN_TOKEN_ISSUED"] },
     });
     const completed = await Student.countDocuments({
+      ...activeFilter,
       state: { $in: ["COMPLETED", "CANTEEN_TOKEN_ISSUED"] },
     });
     const canteenTokenIssued = await Student.countDocuments({
+      ...activeFilter,
       state: "CANTEEN_TOKEN_ISSUED",
     });
 
@@ -59,7 +73,10 @@ const getStats = async (req, res) => {
 
 const getRecentScans = async (req, res) => {
   try {
-    const logs = await ScanLog.find()
+    const activeSince = await getActiveEventStartAt();
+    const logFilter = buildActiveEventLogFilter(activeSince);
+
+    const logs = await ScanLog.find(logFilter)
       .sort({ createdAt: -1 })
       .limit(20)
       .populate({
@@ -134,12 +151,13 @@ const toRelativeTime = (dateValue) => {
 
 const getCandidates = async (req, res) => {
   try {
+    const activeSince = await getActiveEventStartAt();
     const page = Math.max(1, Number.parseInt(req.query.page || "1", 10));
     const limit = Math.max(1, Number.parseInt(req.query.limit || "10", 10));
     const department = req.query.department || "ALL";
     const stage = req.query.stage || "ALL";
 
-    const filter = {};
+    const filter = buildActiveEventStudentFilter(activeSince);
     if (department !== "ALL") {
       filter.department = department;
     }
@@ -200,8 +218,11 @@ const getCandidates = async (req, res) => {
 
 const getDepartmentStats = async (req, res) => {
   try {
+    const activeSince = await getActiveEventStartAt();
+    const activeFilter = buildActiveEventStudentFilter(activeSince);
     // Get all students grouped by department
-    const allStudents = await Student.find().select("department state");
+    const allStudents =
+      await Student.find(activeFilter).select("department state");
     console.log(`[getDepartmentStats] Total students: ${allStudents.length}`);
     allStudents.forEach((s) => {
       console.log(`  Student: ${s.department || "NO_DEPT"} - ${s.state}`);
@@ -251,33 +272,61 @@ const getDepartmentStats = async (req, res) => {
 
 const resetSeatAllocations = async (req, res) => {
   try {
-    // Seat-only reset (preserves historical registration + stage data):
-    // - Clear seat assignments
-    // - Clear seat overrides
-    const [clearedSeatsResult, clearedOverridesResult] = await Promise.all([
-      Student.updateMany({}, { $unset: { seat: "" } }),
-      SeatOverride.deleteMany({}),
-    ]);
+    const activeSince = await getActiveEventStartAt();
+    const activeFilter = buildActiveEventStudentFilter(activeSince);
+
+    // Seat-only reset for CURRENT session:
+    // - Clears seat assignments for session students
+    // NOTE: Overrides are preserved (no deletions).
+    const clearedSeatsResult = await Student.updateMany(activeFilter, {
+      $unset: { seat: "" },
+    });
 
     if (getIO()) {
       emitToAdmins("seating:refresh", { reason: "reset" });
 
-      const [total, checkedIn, seated, gownIssued, completed] =
-        await Promise.all([
-          Student.countDocuments(),
-          Student.countDocuments({
-            state: {
-              $in: ["CHECKED_IN", "SEATED", "GOWN_ISSUED", "COMPLETED"],
-            },
-          }),
-          Student.countDocuments({
-            state: { $in: ["SEATED", "GOWN_ISSUED", "COMPLETED"] },
-          }),
-          Student.countDocuments({
-            state: { $in: ["GOWN_ISSUED", "COMPLETED"] },
-          }),
-          Student.countDocuments({ state: "COMPLETED" }),
-        ]);
+      const [
+        total,
+        checkedIn,
+        seated,
+        gownIssued,
+        completed,
+        canteenTokenIssued,
+      ] = await Promise.all([
+        Student.countDocuments(activeFilter),
+        Student.countDocuments({
+          ...activeFilter,
+          state: {
+            $in: [
+              "CHECKED_IN",
+              "SEATED",
+              "GOWN_ISSUED",
+              "COMPLETED",
+              "CANTEEN_TOKEN_ISSUED",
+            ],
+          },
+        }),
+        Student.countDocuments({
+          ...activeFilter,
+          state: {
+            $in: ["SEATED", "GOWN_ISSUED", "COMPLETED", "CANTEEN_TOKEN_ISSUED"],
+          },
+        }),
+        Student.countDocuments({
+          ...activeFilter,
+          state: {
+            $in: ["GOWN_ISSUED", "COMPLETED", "CANTEEN_TOKEN_ISSUED"],
+          },
+        }),
+        Student.countDocuments({
+          ...activeFilter,
+          state: { $in: ["COMPLETED", "CANTEEN_TOKEN_ISSUED"] },
+        }),
+        Student.countDocuments({
+          ...activeFilter,
+          state: "CANTEEN_TOKEN_ISSUED",
+        }),
+      ]);
 
       emitToAdmins("stats:updated", {
         total,
@@ -285,6 +334,7 @@ const resetSeatAllocations = async (req, res) => {
         seated,
         gownIssued,
         completed,
+        canteenTokenIssued,
       });
       emitToAdmins("department-stats:refresh", { ok: true });
     }
@@ -293,7 +343,7 @@ const resetSeatAllocations = async (req, res) => {
       success: true,
       clearedSeats: clearedSeatsResult?.modifiedCount ?? 0,
       resetToRegistered: 0,
-      clearedOverrides: clearedOverridesResult?.deletedCount ?? 0,
+      clearedOverrides: 0,
     });
   } catch (error) {
     console.error(error.message);
@@ -303,7 +353,10 @@ const resetSeatAllocations = async (req, res) => {
 
 const getSeatOccupancy = async (req, res) => {
   try {
+    const activeSince = await getActiveEventStartAt();
+    const activeFilter = buildActiveEventStudentFilter(activeSince);
     const seatedStudents = await Student.find({
+      ...activeFilter,
       "seat.section": { $exists: true, $ne: null, $ne: "" },
       "seat.number": { $exists: true, $ne: null, $ne: "" },
     }).select("seat name studentId department phone email state");
@@ -442,7 +495,10 @@ const setSeatOverride = async (req, res) => {
 
 const getSeatingReport = async (req, res) => {
   try {
+    const activeSince = await getActiveEventStartAt();
+    const activeFilter = buildActiveEventStudentFilter(activeSince);
     const seatedStudents = await Student.find({
+      ...activeFilter,
       "seat.section": { $exists: true, $ne: null, $ne: "" },
       "seat.number": { $exists: true, $ne: null, $ne: "" },
     })
@@ -474,12 +530,85 @@ const getSeatingReport = async (req, res) => {
   }
 };
 
+const resetEventProgress = async (req, res) => {
+  try {
+    // Start a NEW session cutoff. Previous members remain stored in DB,
+    // but are excluded from the active event views.
+    const activeSince = await setActiveEventStartAt(new Date());
+    const activeFilter = buildActiveEventStudentFilter(activeSince);
+
+    if (getIO()) {
+      emitToAdmins("seating:refresh", { reason: "event-session-reset" });
+
+      const [
+        total,
+        checkedIn,
+        seated,
+        gownIssued,
+        completed,
+        canteenTokenIssued,
+      ] = await Promise.all([
+        Student.countDocuments(activeFilter),
+        Student.countDocuments({
+          ...activeFilter,
+          state: {
+            $in: [
+              "CHECKED_IN",
+              "SEATED",
+              "GOWN_ISSUED",
+              "COMPLETED",
+              "CANTEEN_TOKEN_ISSUED",
+            ],
+          },
+        }),
+        Student.countDocuments({
+          ...activeFilter,
+          state: {
+            $in: ["SEATED", "GOWN_ISSUED", "COMPLETED", "CANTEEN_TOKEN_ISSUED"],
+          },
+        }),
+        Student.countDocuments({
+          ...activeFilter,
+          state: {
+            $in: ["GOWN_ISSUED", "COMPLETED", "CANTEEN_TOKEN_ISSUED"],
+          },
+        }),
+        Student.countDocuments({
+          ...activeFilter,
+          state: { $in: ["COMPLETED", "CANTEEN_TOKEN_ISSUED"] },
+        }),
+        Student.countDocuments({
+          ...activeFilter,
+          state: "CANTEEN_TOKEN_ISSUED",
+        }),
+      ]);
+
+      emitToAdmins("stats:updated", {
+        total,
+        checkedIn,
+        seated,
+        gownIssued,
+        completed,
+        canteenTokenIssued,
+      });
+
+      emitToAdmins("department-stats:refresh", { ok: true });
+    }
+
+    res.json({ success: true, activeSince });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 module.exports = {
   getStats,
   getRecentScans,
   getCandidates,
   getDepartmentStats,
   resetSeatAllocations,
+  resetEventProgress,
   getSeatOccupancy,
   getSeatOverrides,
   setSeatOverride,

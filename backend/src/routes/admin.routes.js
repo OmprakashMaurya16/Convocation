@@ -6,6 +6,7 @@ const {
   getCandidates,
   getDepartmentStats,
   resetSeatAllocations,
+  resetEventProgress,
   getSeatOccupancy,
   getSeatOverrides,
   setSeatOverride,
@@ -26,6 +27,8 @@ router.get(
 );
 
 router.post("/reset-seats", protect, allowRoles("ADMIN"), resetSeatAllocations);
+
+router.post("/reset-event", protect, allowRoles("ADMIN"), resetEventProgress);
 
 router.get("/seat-occupancy", protect, allowRoles("ADMIN"), getSeatOccupancy);
 

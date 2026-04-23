@@ -15,6 +15,7 @@ export default function RoleLogin() {
   const [password, setPassword] = useState("");
   const [studentId, setStudentId] = useState("");
   const [studentName, setStudentName] = useState("");
+  const [studentDepartment, setStudentDepartment] = useState("");
   const [studentMobile, setStudentMobile] = useState("");
   const [studentCompany, setStudentCompany] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -88,38 +89,59 @@ export default function RoleLogin() {
   };
 
   const handleStudentLogin = async () => {
-    if (!studentId.trim()) {
+    const trimmedStudentId = studentId.trim();
+    const trimmedName = studentName.trim();
+    const trimmedDepartment = studentDepartment.trim();
+    const trimmedMobile = studentMobile.trim();
+    const trimmedCompany = studentCompany.trim();
+
+    if (!trimmedStudentId) {
       setError("Student ID is required.");
       return;
     }
 
-    // Verify student exists
-    const student = await apiRequest(
-      `/api/student/${encodeURIComponent(studentId.trim())}`,
-    );
-
-    // Save mobile + company to DB if provided
-    const mobile = studentMobile.trim();
-    const company = studentCompany.trim();
-    if (mobile || company) {
-      await apiRequest(
-        `/api/student/${encodeURIComponent(studentId.trim())}/profile`,
-        {
-          method: "PATCH",
-          body: {
-            ...(mobile ? { phone: mobile } : {}),
-            ...(company ? { company } : {}),
-          },
-        },
-      );
+    if (!trimmedName) {
+      setError("Full name is required.");
+      return;
     }
+
+    if (!trimmedMobile) {
+      setError("Mobile number is required.");
+      return;
+    }
+
+    if (!trimmedCompany) {
+      setError("Company / Employer is required.");
+      return;
+    }
+
+    if (!trimmedDepartment) {
+      setError("Branch / Department is required.");
+      return;
+    }
+
+    // Verify studentId + name + department against pre-event DB data, then save mobile/company.
+    const verifiedStudent = await apiRequest(
+      `/api/student/${encodeURIComponent(trimmedStudentId)}/event-login`,
+      {
+        method: "POST",
+        body: {
+          name: trimmedName,
+          department: trimmedDepartment,
+          phone: trimmedMobile,
+          company: trimmedCompany,
+        },
+      },
+    );
 
     localStorage.setItem(
       "convocation.student",
       JSON.stringify({
-        qrToken: studentId.trim(),
-        studentId: studentId.trim(),
-        name: studentName.trim() || student.name || "Student",
+        qrToken: trimmedStudentId,
+        studentId: trimmedStudentId,
+        name:
+          verifiedStudent?.name || trimmedName || verifiedStudent?.studentId,
+        department: verifiedStudent?.department || trimmedDepartment,
       }),
     );
 
@@ -177,7 +199,7 @@ export default function RoleLogin() {
           </p>
 
           {role === "student" ? (
-          <>
+            <>
               <label className="block">
                 <span className="mb-1 block font-label text-[11px] font-semibold uppercase tracking-wide text-on-surface-variant">
                   Student ID / Roll No. <span className="text-error">*</span>
@@ -187,45 +209,63 @@ export default function RoleLogin() {
                   value={studentId}
                   onChange={(event) => setStudentId(event.target.value)}
                   placeholder="SC-2024-0001"
+                  required
                   className="w-full rounded-lg border border-outline-variant/60 bg-white px-3 py-2.5 font-body text-sm text-on-background outline-none transition-colors focus:border-primary"
                 />
               </label>
 
               <label className="block">
                 <span className="mb-1 block font-label text-[11px] font-semibold uppercase tracking-wide text-on-surface-variant">
-                  Full Name
+                  Full Name <span className="text-error">*</span>
                 </span>
                 <input
                   type="text"
                   value={studentName}
                   onChange={(event) => setStudentName(event.target.value)}
                   placeholder="Your full name"
+                  required
                   className="w-full rounded-lg border border-outline-variant/60 bg-white px-3 py-2.5 font-body text-sm text-on-background outline-none transition-colors focus:border-primary"
                 />
               </label>
 
               <label className="block">
                 <span className="mb-1 block font-label text-[11px] font-semibold uppercase tracking-wide text-on-surface-variant">
-                  Mobile Number
+                  Branch / Department <span className="text-error">*</span>
+                </span>
+                <input
+                  type="text"
+                  value={studentDepartment}
+                  onChange={(event) => setStudentDepartment(event.target.value)}
+                  placeholder="e.g. CSE, ECE, MECH"
+                  required
+                  className="w-full rounded-lg border border-outline-variant/60 bg-white px-3 py-2.5 font-body text-sm text-on-background outline-none transition-colors focus:border-primary"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-1 block font-label text-[11px] font-semibold uppercase tracking-wide text-on-surface-variant">
+                  Mobile Number <span className="text-error">*</span>
                 </span>
                 <input
                   type="tel"
                   value={studentMobile}
                   onChange={(event) => setStudentMobile(event.target.value)}
                   placeholder="+91 98765 43210"
+                  required
                   className="w-full rounded-lg border border-outline-variant/60 bg-white px-3 py-2.5 font-body text-sm text-on-background outline-none transition-colors focus:border-primary"
                 />
               </label>
 
               <label className="block">
                 <span className="mb-1 block font-label text-[11px] font-semibold uppercase tracking-wide text-on-surface-variant">
-                  Company / Employer
+                  Company / Employer <span className="text-error">*</span>
                 </span>
                 <input
                   type="text"
                   value={studentCompany}
                   onChange={(event) => setStudentCompany(event.target.value)}
                   placeholder="e.g. Infosys, TCS, Google…"
+                  required
                   className="w-full rounded-lg border border-outline-variant/60 bg-white px-3 py-2.5 font-body text-sm text-on-background outline-none transition-colors focus:border-primary"
                 />
               </label>

@@ -1,5 +1,9 @@
 const Student = require("../models/student.model.js");
 const SeatOverride = require("../models/seatOverride.model.js");
+const {
+  getActiveEventStartAt,
+  buildActiveEventStudentFilter,
+} = require("./eventSession.js");
 
 const FRONT_ROWS = ["A", "B", "C", "D", "E", "F", "G", "H", "I"];
 const SIDE_ROWS = ["J", "K", "L", "M", "N", "O"];
@@ -24,7 +28,10 @@ const parseSeatId = (seatId) => {
 };
 
 const getOccupiedSeatIdSet = async () => {
+  const activeSince = await getActiveEventStartAt();
+  const activeFilter = buildActiveEventStudentFilter(activeSince);
   const seatedStudents = await Student.find({
+    ...activeFilter,
     "seat.section": { $exists: true, $ne: null, $ne: "" },
     "seat.number": { $exists: true, $ne: null, $ne: "" },
   }).select("seat");

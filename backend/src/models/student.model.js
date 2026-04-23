@@ -68,6 +68,17 @@ const studentSchema = new mongoose.Schema(
       },
     },
 
+    event: {
+      sessionKey: {
+        type: String,
+        index: true,
+      },
+      registeredAt: {
+        type: Date,
+        index: true,
+      },
+    },
+
     timestamps: {
       checkedInAt: Date,
       seatedAt: Date,
@@ -81,10 +92,10 @@ const studentSchema = new mongoose.Schema(
   },
 );
 
-// Ensure a seat can only be assigned to one student at a time.
+// Ensure a seat can only be assigned to one student within a session.
 // Sparse index allows many students with no seat assigned.
 studentSchema.index(
-  { "seat.section": 1, "seat.number": 1 },
+  { "event.sessionKey": 1, "seat.section": 1, "seat.number": 1 },
   { unique: true, sparse: true },
 );
 

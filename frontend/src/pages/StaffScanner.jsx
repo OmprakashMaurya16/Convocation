@@ -34,9 +34,9 @@ const SCANNER_MODES = {
 
 const STATE_TO_NEXT_PHASE = {
   REGISTERED: { label: "Entry Scan", icon: "login" },
-  CHECKED_IN: { label: "Seating Scan", icon: "chair" },
-  SEATED: { label: "Robe Counter", icon: "checkroom" },
-  GOWN_ISSUED: { label: "Return Counter", icon: "assignment_return" },
+  CHECKED_IN: { label: "Robe Counter", icon: "checkroom" },
+  GOWN_ISSUED: { label: "Seating Scan", icon: "chair" },
+  SEATED: { label: "Return Counter", icon: "assignment_return" },
   COMPLETED: { label: "Canteen Token", icon: "restaurant" },
   CANTEEN_TOKEN_ISSUED: { label: "Done", icon: "check_circle" },
 };
@@ -63,11 +63,11 @@ const getDynamicMessage = (scanType, success, seat) => {
 
   switch (scanType) {
     case "ENTRY":
-      return "Welcome! Your entry has been successfully verified. Please proceed to the seating station to get your seat assigned.";
+      return `Checked-in successful. Your ${seatText} has been assigned. Please proceed to the Robe Counter.`;
     case "SEATING":
-      return `You are now seated at ${seatText}. Please remain seated and wait for your turn to receive your degree.`;
+      return `Seating verified. Please take ${seatText} and remain seated for the ceremony.`;
     case "GOWN":
-      return `Your gown has been issued successfully. Kindly proceed to your designated seat: ${seatText}.`;
+      return `Your robe has been issued successfully. Please proceed to the auditorium entry for seating verification.`;
     case "RETURN":
       return "Your gown has been successfully returned. You may now proceed to the food counter.";
     case "CANTEEN":
@@ -155,7 +155,9 @@ export default function StaffScanner() {
         ? [auth.role.toLowerCase()] // each staff member only sees their own mode
         : undefined;
 
-  const hiddenModes = []; // all modes are visible
+  const hiddenModes = enabledModes
+    ? Object.keys(SCANNER_MODES).filter((mode) => !enabledModes.includes(mode))
+    : []; // admin sees all modes
 
   const submitScan = async (rawToken) => {
     const normalizedToken = normalizeScannedValue(rawToken);
@@ -203,6 +205,10 @@ export default function StaffScanner() {
         seatLabel,
       );
 
+      const resultMessage = scanResponse.success
+        ? dynamicMessage
+        : scanResponse.message || "Scan rejected";
+
       setResult({
         status: scanResponse.success
           ? STATE_LABEL[scanResponse.state] || "SUCCESS"
@@ -214,7 +220,7 @@ export default function StaffScanner() {
         seat: seatLabel,
         nextPhase: nextPhase.label,
         nextPhaseIcon: nextPhase.icon,
-        message: dynamicMessage,
+        message: resultMessage,
       });
       setShowResult(true);
     } catch (scanError) {

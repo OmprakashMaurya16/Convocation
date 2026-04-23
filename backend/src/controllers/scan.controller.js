@@ -2,6 +2,10 @@ const Student = require("../models/student.model.js");
 const ScanLog = require("../models/scanLog.model.js");
 const { getIO, emitToAdmins, emitToStudent } = require("../socket.js");
 const { findNextAvailableSeat } = require("../utils/seatAllocator.js");
+const {
+  getActiveEventStartAt,
+  buildActiveEventStudentFilter,
+} = require("../utils/eventSession.js");
 
 const SCAN_TYPE_LOCATION = {
   ENTRY: "Entry Gate",
@@ -11,29 +15,60 @@ const SCAN_TYPE_LOCATION = {
   CANTEEN: "Canteen Token Desk",
 };
 
+const ALLOWED_SCAN_TYPES = ["ENTRY", "SEATING", "GOWN", "RETURN", "CANTEEN"];
+
+const EXPECTED_STATE_FOR_SCAN = {
+  ENTRY: "REGISTERED",
+  GOWN: "CHECKED_IN",
+  SEATING: "GOWN_ISSUED",
+  RETURN: "SEATED",
+  CANTEEN: "COMPLETED",
+};
+
 const scanQR = async (req, res) => {
   try {
     const { qrToken, scanType } = req.body;
     const staff = req.user;
 
+    const activeSince = await getActiveEventStartAt();
+    const activeFilter = buildActiveEventStudentFilter(activeSince);
+
     if (!qrToken || !scanType) {
       return res.status(400).json({ success: false, message: "Missing data" });
     }
 
-    const student = await Student.findOne({
+    const normalizedScanType = String(scanType).toUpperCase().trim();
+    if (!ALLOWED_SCAN_TYPES.includes(normalizedScanType)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid scan type" });
+    }
+
+    let student = await Student.findOne({
+      ...activeFilter,
       $or: [{ qrToken }, { studentId: qrToken }],
     });
 
     if (!student) {
+      const anySessionStudent = await Student.findOne({
+        $or: [{ qrToken }, { studentId: qrToken }],
+      }).select("_id");
+
+      if (anySessionStudent) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Student is not registered for the current event session. Please login/register first.",
+        });
+      }
+
       return res
         .status(404)
         .json({ success: false, message: "Student not found" });
     }
 
     const isAuthorizedForScanType =
-      staff.role === "ADMIN" ||
-      staff.role === scanType ||
-      (scanType === "ENTRY" && staff.role === "SEATING");
+      staff.role === "ADMIN" || staff.role === normalizedScanType;
 
     if (!isAuthorizedForScanType) {
       return res.status(403).json({
@@ -49,14 +84,8 @@ const scanQR = async (req, res) => {
     let valid = false;
     let message = "";
 
-    if (scanType === "ENTRY" && student.state === "REGISTERED") {
-      // Entry gate: mark student as checked-in. Seat is assigned at the seating station.
-      student.state = "CHECKED_IN";
-      student.timestamps.checkedInAt = new Date();
-      valid = true;
-      message = "Student checked in at entry gate";
-    } else if (scanType === "SEATING" && student.state === "CHECKED_IN") {
-      // Seating station: assign a seat and mark student as seated.
+    if (normalizedScanType === "ENTRY" && student.state === "REGISTERED") {
+      // Entry gate: check-in + assign seat.
       const now = new Date();
       const seat = await findNextAvailableSeat();
       if (!seat) {
@@ -64,28 +93,50 @@ const scanQR = async (req, res) => {
         valid = false;
       } else {
         student.seat = seat;
-        student.state = "SEATED";
-        student.timestamps.seatedAt = now;
+        student.state = "CHECKED_IN";
+        student.timestamps.checkedInAt = now;
         valid = true;
-        message = `Seat assigned: ${seat.section}${seat.number}`;
+        message = `Checked-in & seat assigned: ${seat.section}${seat.number}`;
       }
-    } else if (scanType === "GOWN" && student.state === "SEATED") {
+    } else if (
+      normalizedScanType === "GOWN" &&
+      student.state === "CHECKED_IN"
+    ) {
+      // Robe counter: issue gown.
       student.state = "GOWN_ISSUED";
       student.gown.issued = true;
       student.timestamps.gownIssuedAt = new Date();
       valid = true;
-    } else if (scanType === "RETURN" && student.state === "GOWN_ISSUED") {
+      message = "Robe issued successfully";
+    } else if (
+      normalizedScanType === "SEATING" &&
+      student.state === "GOWN_ISSUED"
+    ) {
+      // Auditorium entry/seating verification: mark as seated.
+      student.state = "SEATED";
+      student.timestamps.seatedAt = new Date();
+      valid = true;
+      message = "Student seated successfully";
+    } else if (normalizedScanType === "RETURN" && student.state === "SEATED") {
       student.state = "COMPLETED";
       student.gown.returned = true;
       student.timestamps.returnedAt = new Date();
       valid = true;
-    } else if (scanType === "CANTEEN" && student.state === "COMPLETED") {
+      message = "Robe returned successfully";
+    } else if (
+      normalizedScanType === "CANTEEN" &&
+      student.state === "COMPLETED"
+    ) {
       student.state = "CANTEEN_TOKEN_ISSUED";
       student.canteenToken.issued = true;
       student.timestamps.canteenTokenIssuedAt = new Date();
       valid = true;
+      message = "Canteen token issued successfully";
     } else {
-      message = "Invalid stage transition";
+      const expectedState = EXPECTED_STATE_FOR_SCAN[normalizedScanType];
+      message = expectedState
+        ? `Invalid stage. Expected student to be ${expectedState}, but current state is ${student.state}.`
+        : "Invalid stage transition";
     }
 
     if (valid) await student.save();
@@ -110,9 +161,9 @@ const scanQR = async (req, res) => {
         studentId: student.studentId,
         name: student.name,
         department: student.department,
-        stage: scanType,
+        stage: normalizedScanType,
         status: valid ? "SUCCESS" : "REJECTED",
-        location: SCAN_TYPE_LOCATION[scanType] || "Scanner",
+        location: SCAN_TYPE_LOCATION[normalizedScanType] || "Scanner",
       };
 
       console.log("Emitting scan created event:", {
@@ -126,7 +177,7 @@ const scanQR = async (req, res) => {
 
       // Student-specific feed (keeps StudentDashboard behavior without leaking global scan feed)
       emitToStudent(student.studentId, "scan:created", {
-        scanType,
+        scanType: normalizedScanType,
         status: valid ? "SUCCESS" : "REJECTED",
       });
 
@@ -168,8 +219,9 @@ const scanQR = async (req, res) => {
           completed,
           canteenTokenIssued,
         ] = await Promise.all([
-          Student.countDocuments(),
+          Student.countDocuments(activeFilter),
           Student.countDocuments({
+            ...activeFilter,
             state: {
               $in: [
                 "CHECKED_IN",
@@ -181,6 +233,7 @@ const scanQR = async (req, res) => {
             },
           }),
           Student.countDocuments({
+            ...activeFilter,
             state: {
               $in: [
                 "SEATED",
@@ -191,14 +244,19 @@ const scanQR = async (req, res) => {
             },
           }),
           Student.countDocuments({
+            ...activeFilter,
             state: {
               $in: ["GOWN_ISSUED", "COMPLETED", "CANTEEN_TOKEN_ISSUED"],
             },
           }),
           Student.countDocuments({
+            ...activeFilter,
             state: { $in: ["COMPLETED", "CANTEEN_TOKEN_ISSUED"] },
           }),
-          Student.countDocuments({ state: "CANTEEN_TOKEN_ISSUED" }),
+          Student.countDocuments({
+            ...activeFilter,
+            state: "CANTEEN_TOKEN_ISSUED",
+          }),
         ]);
 
         console.log("[scanQR] Emitting stats:updated -", {
