@@ -6,6 +6,40 @@ export default function DepartmentChart({ token, refreshKey = 0 }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const getDeptColors = (deptName) => {
+    // Use only existing theme tokens (see tailwind.config.js) to keep visuals consistent.
+    // Returns Tailwind class names for the bar front gradient + side face.
+    const palette = {
+      INFT: {
+        front: "bg-gradient-to-t from-primary to-primary-fixed-dim",
+        side: "bg-primary",
+      },
+      CMPN: {
+        front: "bg-gradient-to-t from-secondary to-secondary-fixed",
+        side: "bg-secondary",
+      },
+      EXTC: {
+        front: "bg-gradient-to-t from-surface-tint to-primary-fixed",
+        side: "bg-surface-tint",
+      },
+      EXCS: {
+        front: "bg-gradient-to-t from-tertiary-container to-tertiary-fixed-dim",
+        side: "bg-tertiary-container",
+      },
+      BIOMD: {
+        front: "bg-gradient-to-t from-error to-error-container",
+        side: "bg-error",
+      },
+    };
+
+    return (
+      palette[String(deptName || "").toUpperCase()] || {
+        front: "bg-gradient-to-t from-primary to-primary-fixed-dim",
+        side: "bg-primary",
+      }
+    );
+  };
+
   useEffect(() => {
     const fetchDepartmentStats = async () => {
       try {
@@ -80,27 +114,77 @@ export default function DepartmentChart({ token, refreshKey = 0 }) {
         </div>
       </div>
 
-      <div className="flex items-end justify-between h-40 xs:h-48 sm:h-56 lg:h-64 gap-1 xs:gap-1.5 md:gap-2 lg:gap-4 px-1 xs:px-2 overflow-x-auto pb-2 bg-surface-container rounded">
-        {departments.map((dept) => (
-          <div
-            key={dept.name}
-            className="flex-1 min-w-[24px] xs:min-w-[32px] md:min-w-[40px] flex flex-col items-center justify-end gap-1 xs:gap-1.5 md:gap-2 group h-full"
-            title={`${dept.name}: ${dept.presentCount}/${dept.totalExpected} students`}
-          >
-            {/* Bar container with background */}
-            <div className="w-full h-full bg-surface-container-low rounded-t flex flex-col justify-end relative">
-              {/* Colored bar showing percentage */}
-              <div
-                className="w-full bg-primary rounded-t transition-all group-hover:brightness-110"
-                style={{ height: `${Math.max(dept.present, 5)}%` }}
-              ></div>
-            </div>
-            {/* Department label */}
-            <span className="text-[7px] xs:text-[8px] sm:text-[9px] md:text-[10px] font-bold text-outline uppercase tracking-tighter whitespace-nowrap flex-shrink-0">
-              {dept.name}
-            </span>
+      <div className="relative h-40 xs:h-48 sm:h-56 lg:h-64 bg-surface-container rounded-lg overflow-x-auto">
+        <div className="flex h-full">
+          {/* Y-axis labels */}
+          <div className="flex flex-col justify-between py-3 pl-2 pr-1 xs:pl-3 xs:pr-2 text-[9px] xs:text-[10px] font-bold text-on-surface-variant select-none">
+            <span>100%</span>
+            <span>75%</span>
+            <span>50%</span>
+            <span>25%</span>
+            <span>0%</span>
           </div>
-        ))}
+
+          {/* Plot area */}
+          <div className="relative flex-1 h-full px-2 xs:px-3 md:px-4 pb-2">
+            {/* subtle gridlines for readability */}
+            <div className="pointer-events-none absolute inset-0 flex flex-col justify-between px-2 xs:px-3 md:px-4 py-3 opacity-60">
+              <div className="h-px bg-outline-variant" />
+              <div className="h-px bg-outline-variant" />
+              <div className="h-px bg-outline-variant" />
+              <div className="h-px bg-outline-variant" />
+              <div className="h-px bg-outline-variant" />
+            </div>
+
+            <div className="relative z-10 flex items-end justify-between h-full gap-4 xs:gap-6 md:gap-8 lg:gap-10">
+              {departments.map((dept) => {
+                const presentPct = Number.isFinite(dept?.present)
+                  ? Math.max(0, Math.min(100, dept.present))
+                  : 0;
+                const presentHeightPct = Math.max(presentPct, 2);
+                const colors = getDeptColors(dept?.name);
+
+                return (
+                  <div
+                    key={dept.name}
+                    className="flex-1 min-w-[72px] xs:min-w-[84px] md:min-w-[96px] flex flex-col items-center justify-end gap-2 group h-full"
+                    title={`${dept.name}: ${dept.presentCount}/${dept.totalExpected} present (${presentPct}%)`}
+                    aria-label={`${dept.name} attendance ${dept.presentCount} out of ${dept.totalExpected} present`}
+                  >
+                    <div className="flex-1 w-full flex items-end justify-center relative">
+                      {/* Expected track (100%) */}
+                      <div className="absolute bottom-0 h-full w-10 xs:w-11 md:w-12 rounded-sm bg-surface-variant ring-1 ring-outline-variant opacity-70" />
+
+                      {/* Shadow */}
+                      <div className="absolute -bottom-1 w-12 xs:w-14 h-2 bg-outline-variant opacity-30 blur-sm" />
+
+                      {/* Present bar (with slight 3D side face) */}
+                      <div className="relative w-10 xs:w-11 md:w-12">
+                        <div
+                          className={`absolute bottom-0 left-0 w-[80%] rounded-sm ${colors.front} group-hover:brightness-110 transition-all duration-300`}
+                          style={{ height: `${presentHeightPct}%` }}
+                        />
+                        <div
+                          className={`absolute bottom-0 left-[80%] w-[20%] rounded-sm ${colors.side} opacity-90 transition-all duration-300`}
+                          style={{ height: `${presentHeightPct}%` }}
+                        />
+
+                        {/* value label (hover) */}
+                        <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-[9px] xs:text-[10px] font-bold text-on-surface opacity-0 group-hover:opacity-100 transition-opacity">
+                          {presentPct}%
+                        </div>
+                      </div>
+                    </div>
+
+                    <span className="text-[9px] xs:text-[10px] md:text-[11px] font-bold text-on-surface-variant uppercase tracking-wider whitespace-nowrap flex-shrink-0">
+                      {dept.name}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

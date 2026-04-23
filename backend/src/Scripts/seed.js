@@ -86,6 +86,33 @@ const seedDatabase = async () => {
         qrToken: generateQRToken("23101A0028"),
         state: "REGISTERED",
       },
+      {
+        name: "Sherya Gankoar",
+        studentId: "23101A0032",
+        department: "INFT",
+        phone: "8989898989",
+        email: "",
+        qrToken: generateQRToken("23101A0032"),
+        state: "REGISTERED",
+      },
+      {
+        name: "Abhishek Wali",
+        studentId: "23101A0042",
+        department: "INFT",
+        phone: "8989898989",
+        email: "",
+        qrToken: generateQRToken("23101A0042"),
+        state: "REGISTERED",
+      },
+      {
+        name: "Mayank Ekbote",
+        studentId: "23101A0001",
+        department: "INFT",
+        phone: "8989898989",
+        email: "",
+        qrToken: generateQRToken("23101A0001"),
+        state: "REGISTERED",
+      },
     ];
 
     for (const studentData of students) {
@@ -99,7 +126,7 @@ const seedDatabase = async () => {
     console.log("\n========== SEED SUMMARY ==========");
     console.log("✓ 1 Admin account created");
     console.log("✓ 3 Staff accounts created (ENTRY, GOWN, RETURN)");
-    console.log("✓ 2 Students created");
+    console.log("✓ 5  Students created");
     console.log("===================================\n");
 
     console.log("📋 Credentials:\n");
