@@ -8,7 +8,7 @@ const STAGE_LABELS = {
 export default function LiveScanTable({ scanData = [] }) {
   const rows = scanData.map((row) => ({
     ...row,
-    id: row.studentId,
+    scanId: row.id, // Keep original unique ID as scanId
     stageLabel: STAGE_LABELS[row.stage] || row.stage,
   }));
 
@@ -45,7 +45,7 @@ export default function LiveScanTable({ scanData = [] }) {
       <div className="block md:hidden space-y-1.5 xs:space-y-2 p-2 xs:p-3">
         {rows.map((row) => (
           <div
-            key={row.id + row.time}
+            key={row.scanId}
             className="bg-surface-container-low p-2 xs:p-3 rounded-lg border border-outline-variant/20 touch-target active:bg-surface-container-highest transition"
           >
             <div className="flex justify-between items-start gap-1.5 xs:gap-2 mb-1.5 xs:mb-2">
@@ -54,7 +54,7 @@ export default function LiveScanTable({ scanData = [] }) {
                   {row.time}
                 </p>
                 <p className="font-bold text-primary text-xs xs:text-sm truncate">
-                  {row.id}
+                  {row.studentId}
                 </p>
                 <p className="text-xs xs:text-sm text-on-surface font-medium truncate mt-0.5 xs:mt-1">
                   {row.name}
@@ -92,14 +92,14 @@ export default function LiveScanTable({ scanData = [] }) {
           <tbody className="text-xs sm:text-sm font-body">
             {rows.map((row) => (
               <tr
-                key={row.id + row.time}
+                key={row.scanId}
                 className="border-b border-outline-variant/5 hover:bg-surface-container-low/30 transition-colors active:bg-surface-container-low"
               >
                 <td className="px-2 xs:px-3 md:px-6 py-2 xs:py-3 text-on-surface-variant font-label text-[8px] xs:text-xs">
                   {row.time}
                 </td>
-                <td className="px-2 xs:px-3 md:px-6 py-2 xs:py-3 font-bold text-primary text-xs sm:text-sm">
-                  {row.id}
+                <td className="px-2 xs:px-3 md:px-6 py-2 xs:py-3 font-bold text-primary">
+                  {row.studentId}
                 </td>
                 <td className="px-2 xs:px-3 md:px-6 py-2 xs:py-3 font-medium text-on-surface hidden sm:table-cell text-xs sm:text-sm">
                   {row.name}

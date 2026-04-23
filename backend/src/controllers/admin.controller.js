@@ -45,25 +45,62 @@ const getRecentScans = async (req, res) => {
     const logs = await ScanLog.find()
       .sort({ createdAt: -1 })
       .limit(20)
-      .populate({ path: "studentId", select: "name qrToken studentId" });
+      .populate({ 
+        path: "studentId", 
+        select: "name qrToken studentId department state",
+        strictPopulate: false, // Continue even if ref doesn't exist
+      });
 
-    const scans = logs.map((log) => ({
-      id: log._id,
-      time: new Date(log.createdAt).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      }),
-      studentId: log.studentId?.studentId || "N/A",
-      name: log.studentId?.name || "Unknown",
-      stage: log.scanType,
-      status: log.status,
-      location: SCAN_TYPE_LOCATION[log.scanType] || "Scanner",
-    }));
+    // Build scans with fallback handling
+    const scans = await Promise.all(
+      logs.map(async (log) => {
+        let studentName = "Unknown";
+        let studentId = "N/A";
+        let department = "N/A";
+
+        if (log.studentId) {
+          // Populate worked
+          studentName = log.studentId.name || "Unknown";
+          studentId = log.studentId.studentId || "N/A";
+          department = log.studentId.department || "N/A";
+        } else if (log.studentId && typeof log.studentId === "object") {
+          // Already populated but null
+          console.warn("StudentId populated but null for log:", log._id);
+        } else {
+          // Fallback: try to fetch directly if populate failed
+          const student = await Student.findById(log.studentId).select(
+            "name studentId department"
+          );
+          if (student) {
+            studentName = student.name || "Unknown";
+            studentId = student.studentId || "N/A";
+            department = student.department || "N/A";
+            console.log("Fallback fetch succeeded for student:", studentId);
+          } else {
+            console.warn("Student not found for log:", log.studentId);
+          }
+        }
+
+        return {
+          id: log._id,
+          time: new Date(log.createdAt).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          }),
+          studentId,
+          name: studentName,
+          department,
+          stage: log.scanType,
+          status: log.status,
+          location: SCAN_TYPE_LOCATION[log.scanType] || "Scanner",
+        };
+      })
+    );
 
     res.json({ scans });
   } catch (error) {
-    console.error(error.message);
+    console.error("Error in getRecentScans:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -148,6 +185,10 @@ const getDepartmentStats = async (req, res) => {
   try {
     // Get all students grouped by department
     const allStudents = await Student.find().select("department state");
+    console.log(`[getDepartmentStats] Total students: ${allStudents.length}`);
+    allStudents.forEach((s) => {
+      console.log(`  Student: ${s.department || "NO_DEPT"} - ${s.state}`);
+    });
 
     // Define departments in order
     const departments = ["INFT", "CMPN", "EXTC", "EXCS", "BIOMD"];
@@ -156,9 +197,18 @@ const getDepartmentStats = async (req, res) => {
     const deptStats = departments.map((dept) => {
       const deptStudents = allStudents.filter((s) => s.department === dept);
       const totalExpected = deptStudents.length;
+      
+      // Mark as PRESENT if student:
+      // 1. Checked-in (CHECKED_IN state)
+      // 2. Seated (SEATED state)
+      // 3. Issued the gown (GOWN_ISSUED state)
+      // 4. Completed the event (COMPLETED state)
+      // NOT present if still in REGISTERED state
       const presentCount = deptStudents.filter(
-        (s) => s.state === "COMPLETED" || s.state === "GOWN_ISSUED",
+        (s) => s.state !== "REGISTERED",
       ).length;
+
+      console.log(`[getDepartmentStats] ${dept}: ${presentCount}/${totalExpected} present`);
 
       return {
         name: dept,
@@ -172,9 +222,10 @@ const getDepartmentStats = async (req, res) => {
       };
     });
 
+    console.log(`[getDepartmentStats] Response:`, deptStats);
     res.json(deptStats);
   } catch (error) {
-    console.error(error.message);
+    console.error("[getDepartmentStats] Error:", error.message);
     res.status(500).json({ message: "Server error" });
   }
 };
