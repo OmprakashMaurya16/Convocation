@@ -8,6 +8,7 @@ const connectDB = require("../config/db.js");
 // Import models
 const Staff = require("../models/staff.model.js");
 const Student = require("../models/student.model.js");
+const EventMeta = require("../models/eventMeta.model.js");
 
 const seedDatabase = async () => {
   try {
@@ -18,6 +19,7 @@ const seedDatabase = async () => {
     // Clear existing data
     await Staff.deleteMany({});
     await Student.deleteMany({});
+    await EventMeta.deleteMany({});
     console.log("✓ Cleared existing data");
 
     // ========== ADMIN USER ==========

@@ -44,7 +44,6 @@ export default function DepartmentChart({ token, refreshKey = 0 }) {
     const fetchDepartmentStats = async () => {
       try {
         setLoading(true);
-        console.log("Fetching department stats with refreshKey:", refreshKey);
 
         if (!token) {
           throw new Error("No authentication token found");
@@ -53,7 +52,6 @@ export default function DepartmentChart({ token, refreshKey = 0 }) {
         const data = await apiRequest("/api/admin/department-stats", {
           token,
         });
-        console.log("Department stats fetched:", data);
         setDepartments(Array.isArray(data) ? data : []);
         setError(null);
       } catch (err) {

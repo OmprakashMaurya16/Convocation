@@ -99,26 +99,21 @@ export default function AdminDashboard() {
     const socket = createSocketClient({ token: auth.token });
 
     socket.on("connect", () => {
-      console.log("Admin socket connected:", socket.id);
       socket.emit("admin:subscribe");
     });
 
     socket.on("admin:subscribed", (data) => {
-      console.log("Admin subscribed to admin room:", data);
     });
 
     socket.on("scan:created", (scan) => {
-      console.log("Scan created event received:", scan);
       setLiveScans((previous) => [scan, ...previous].slice(0, 20));
     });
 
     socket.on("stats:updated", (nextStats) => {
-      console.log("Stats updated event received:", nextStats);
       setStats(nextStats);
     });
 
     socket.on("department-stats:refresh", () => {
-      console.log("Department stats refresh event received");
       setDepartmentRefreshKey((value) => value + 1);
     });
 
@@ -127,7 +122,6 @@ export default function AdminDashboard() {
     });
 
     socket.on("disconnect", (reason) => {
-      console.log("Socket disconnected:", reason);
     });
 
     return () => {
