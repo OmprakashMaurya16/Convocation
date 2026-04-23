@@ -1,25 +1,20 @@
-import { useState } from 'react';
-import ScannerTopBar from '../components/ScannerTopBar';
-import ScannerFrame from '../components/ScannerFrame';
-import ScanResultCard from '../components/ScanResultCard';
-import ScannerBottomNav from '../components/ScannerBottomNav';
+import { useState } from "react";
+import ScannerTopBar from "../components/ScannerTopBar";
+import ScannerFrame from "../components/ScannerFrame";
+import ScanResultCard from "../components/ScanResultCard";
+import ScannerBottomNav from "../components/ScannerBottomNav";
 
 export default function EntryScan() {
-  const [activeMode, setActiveMode] = useState('entry');
-  const [showResult, setShowResult] = useState(true);
-
-  const handleScan = () => {
-    setShowResult(true);
-    setTimeout(() => setShowResult(false), 3000);
-  };
+  const [activeMode, setActiveMode] = useState("entry");
+  const [showResult, _setShowResult] = useState(true);
 
   return (
     <div className="flex flex-col h-screen bg-background overflow-hidden">
       {/* Top Bar */}
-      <ScannerTopBar 
-        title="Scanner Ledger" 
+      <ScannerTopBar
+        title="Scanner Ledger"
         counter="Entry Gate 1"
-        onSettings={() => console.log('Settings')}
+        onSettings={() => console.log("Settings")}
       />
 
       {/* Main Scanning Area */}

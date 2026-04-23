@@ -153,13 +153,6 @@ export default function StudentDashboard() {
   const studentId = student?.qrToken || studentSession?.studentId || "-";
   const department = student?.department || "Department not available";
   const qrImage = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(studentId)}`;
-  const seatQrPayload =
-    seatSection !== "-" && seatNumber !== "-"
-      ? `${studentId}|${seatSection}-${seatNumber}`
-      : null;
-  const seatQrImage = seatQrPayload
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(seatQrPayload)}`
-    : null;
 
   return (
     <div className="flex flex-col min-h-screen bg-surface">
@@ -234,30 +227,6 @@ export default function StudentDashboard() {
             Fast Check-in Identification
           </p>
         </section>
-
-        {/* Seat QR (visible once seated) */}
-        {seatQrImage ? (
-          <section className="bg-surface-container-lowest rounded-lg md:rounded-xl p-6 md:p-8 flex flex-col items-center shadow-sm relative overflow-hidden">
-            <div
-              className="absolute top-0 left-0 w-1 h-full"
-              style={{
-                background: "linear-gradient(135deg, #002547 0%, #1b3b5f 100%)",
-              }}
-            ></div>
-
-            <div className="p-3 md:p-4 bg-white rounded-lg border-2 border-primary/10">
-              <img
-                alt="Seat Verification QR Code"
-                className="w-36 md:w-44 lg:w-48 h-36 md:h-44 lg:h-48"
-                src={seatQrImage}
-              />
-            </div>
-
-            <p className="mt-4 md:mt-6 font-label text-xs md:text-xs uppercase tracking-tighter text-outline font-bold">
-              Seat Verification (scan at checkpoints)
-            </p>
-          </section>
-        ) : null}
 
         {/* Status Tracker Section */}
         <section className="bg-surface-container-low rounded-lg md:rounded-xl p-4 md:p-6">

@@ -1,10 +1,10 @@
 /**
  * Frontend Test Script: Real-time Graph Update Verification
- * 
+ *
  * This script can be:
  * 1. Run in browser console after admin dashboard loads
  * 2. Modified and run as part of your test suite
- * 
+ *
  * It verifies that the DepartmentChart component updates when:
  * - Socket events are received
  * - Manual refresh triggers occur
@@ -80,13 +80,15 @@ const DepartmentGraphTest = {
     const checks = {
       "Department Chart Container":
         document.querySelector(".grid.grid-cols-1.lg\\:grid-cols-12") !== null,
-      "Department Chart Title": Array.from(document.querySelectorAll("h4")).some(
-        (h) => h.textContent.includes("Department-wise Attendance")
-      ),
-      "Department Chart Legend": Array.from(document.querySelectorAll("span"))
-        .some((s) => s.textContent.includes("Present")) &&
+      "Department Chart Title": Array.from(
+        document.querySelectorAll("h4"),
+      ).some((h) => h.textContent.includes("Department-wise Attendance")),
+      "Department Chart Legend":
         Array.from(document.querySelectorAll("span")).some((s) =>
-          s.textContent.includes("Expected")
+          s.textContent.includes("Present"),
+        ) &&
+        Array.from(document.querySelectorAll("span")).some((s) =>
+          s.textContent.includes("Expected"),
         ),
       "Department Bars": document.querySelectorAll("[title*=':']").length > 0,
     };
@@ -95,7 +97,7 @@ const DepartmentGraphTest = {
       this.recordTest(
         `DOM element present: ${name}`,
         result,
-        result ? "Found" : "Not found"
+        result ? "Found" : "Not found",
       );
     });
 
@@ -105,9 +107,7 @@ const DepartmentGraphTest = {
   checkDepartmentData: function () {
     testUtils.log.test("Checking department chart data");
 
-    const departmentBars = document.querySelectorAll(
-      "[title*=':']"
-    );
+    const departmentBars = document.querySelectorAll("[title*=':']");
     const departments = Array.from(departmentBars).map((bar) => {
       const titleText = bar.getAttribute("title");
       const match = titleText.match(/(.+?):\s*(\d+)\/(\d+)/);
@@ -126,7 +126,7 @@ const DepartmentGraphTest = {
     this.recordTest(
       "Department data is loaded and parsed correctly",
       validDepartments.length > 0,
-      `Loaded ${validDepartments.length} departments`
+      `Loaded ${validDepartments.length} departments`,
     );
 
     if (validDepartments.length > 0) {
@@ -146,13 +146,11 @@ const DepartmentGraphTest = {
     const adminDashboard = document.querySelector("[class*='AdminDashboard']");
 
     if (!adminDashboard) {
-      testUtils.log.warning(
-        "Could not find AdminDashboard component in DOM"
-      );
+      testUtils.log.warning("Could not find AdminDashboard component in DOM");
       this.recordTest(
         "Socket event simulation available",
         false,
-        "Component not found in DOM"
+        "Component not found in DOM",
       );
       return;
     }
@@ -160,13 +158,13 @@ const DepartmentGraphTest = {
     // This is a simplified simulation
     // In a real scenario, you would trigger an actual scan
     testUtils.log.info(
-      "Note: In a real test, this would come from the backend scan event"
+      "Note: In a real test, this would come from the backend scan event",
     );
 
     this.recordTest(
       "Socket event simulation capability",
       true,
-      "Ready to receive events from backend"
+      "Ready to receive events from backend",
     );
   },
 
@@ -191,7 +189,7 @@ const DepartmentGraphTest = {
     this.recordTest(
       "Socket event logging is active",
       true,
-      "Console logging configured"
+      "Console logging configured",
     );
 
     // Restore console after a brief period
@@ -206,23 +204,21 @@ const DepartmentGraphTest = {
     testUtils.log.test("Checking graph refresh mechanism");
 
     // Check if the component properly re-fetches data
-    const departmentBars = document.querySelectorAll(
-      "[title*=':']"
-    );
+    const departmentBars = document.querySelectorAll("[title*=':']");
     const initialCount = departmentBars.length;
 
     this.recordTest(
       "Department chart render function is functional",
       initialCount > 0,
-      `${initialCount} department bars rendered`
+      `${initialCount} department bars rendered`,
     );
 
     this.recordTest(
       "Graph styling and animation ready",
       Array.from(departmentBars).every(
-        (bar) => bar.style.height !== "" || true
+        (bar) => bar.style.height !== "" || true,
       ),
-      "All bars have height styling"
+      "All bars have height styling",
     );
   },
 
@@ -241,24 +237,19 @@ const DepartmentGraphTest = {
       }
     });
 
-    console.log(
-      `\n%c${"-".repeat(60)}`,
-      "color: gray"
-    );
+    console.log(`\n%c${"-".repeat(60)}`, "color: gray");
     console.log(
       `%cTotal: ${this.results.passed} passed, ${this.results.failed} failed`,
-      "font-weight: bold"
+      "font-weight: bold",
     );
     testUtils.log.test("=" + "=".repeat(58) + "=");
 
     if (this.results.failed === 0) {
       testUtils.log.success(
-        "All tests passed! Graph update mechanism is working correctly."
+        "All tests passed! Graph update mechanism is working correctly.",
       );
     } else {
-      testUtils.log.warning(
-        `${this.results.failed} test(s) need attention.`
-      );
+      testUtils.log.warning(`${this.results.failed} test(s) need attention.`);
     }
   },
 
@@ -278,7 +269,7 @@ const DepartmentGraphTest = {
     this.setupLiveUpdateTest(departments);
   },
 
-  setupLiveUpdateTest: function (initialDepartments) {
+  setupLiveUpdateTest: function () {
     testUtils.log.test("Setting up live update monitoring");
 
     if (!isBrowser) return;
@@ -311,7 +302,7 @@ const DepartmentGraphTest = {
           padding-bottom: 5px;
         `,
       },
-      "Live Update Monitor"
+      "Live Update Monitor",
     );
 
     const content = testUtils.createElement(
@@ -325,7 +316,7 @@ const DepartmentGraphTest = {
           line-height: 1.4;
         `,
       },
-      `Monitoring department chart updates...\nRefresh Key: 0\nEvents received: 0`
+      `Monitoring department chart updates...\nRefresh Key: 0\nEvents received: 0`,
     );
 
     const closeBtn = testUtils.createElement("button", {
@@ -359,8 +350,8 @@ if (isBrowser) {
   window.DepartmentGraphTest = DepartmentGraphTest;
   console.log(
     "%cDepartmentGraphTest ready! Run: DepartmentGraphTest.run()",
-    "color: green; font-weight: bold;"
+    "color: green; font-weight: bold;",
   );
-} else {
-  module.exports = DepartmentGraphTest;
 }
+
+export default DepartmentGraphTest;

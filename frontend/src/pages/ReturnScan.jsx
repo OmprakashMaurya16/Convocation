@@ -6,12 +6,7 @@ import ScannerBottomNav from "../components/ScannerBottomNav";
 
 export default function ReturnScan() {
   const [activeMode, setActiveMode] = useState("return");
-  const [showResult, setShowResult] = useState(true);
-
-  const handleScan = () => {
-    setShowResult(true);
-    setTimeout(() => setShowResult(false), 3000);
-  };
+  const [showResult, _setShowResult] = useState(true);
 
   return (
     <div className="flex flex-col h-screen bg-background overflow-hidden">
