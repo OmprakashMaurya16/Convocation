@@ -11,15 +11,19 @@ const QR_READER_ELEMENT_ID = "staff-scanner-qr-reader";
 
 const SCANNER_MODES = {
   entry: {
-    counter: "Entry Gate 1",
+    counter: "Entry Gate",
     scanType: "ENTRY",
   },
+  seating: {
+    counter: "Seating Station",
+    scanType: "SEATING",
+  },
   gown: {
-    counter: "Robe Counter A-2",
+    counter: "Robe Counter",
     scanType: "GOWN",
   },
   return: {
-    counter: "Return Counter C-3",
+    counter: "Return Counter",
     scanType: "RETURN",
   },
   canteen: {
@@ -46,14 +50,39 @@ const STATE_LABEL = {
   CANTEEN_TOKEN_ISSUED: "CANTEEN TOKEN ISSUED",
 };
 
+/**
+ * Returns a human-friendly message for the scanner result card.
+ * @param {string} scanType  - ENTRY | SEATING | GOWN | RETURN | CANTEEN
+ * @param {boolean} success  - whether the scan was accepted
+ * @param {string|null} seat - formatted seat label, e.g. "A-12"
+ */
+const getDynamicMessage = (scanType, success, seat) => {
+  if (!success) return null;
+
+  const seatText = seat ? `Seat No. ${seat}` : "your assigned seat";
+
+  switch (scanType) {
+    case "ENTRY":
+      return "Welcome! Your entry has been successfully verified. Please proceed to the seating station to get your seat assigned.";
+    case "SEATING":
+      return `You are now seated at ${seatText}. Please remain seated and wait for your turn to receive your degree.`;
+    case "GOWN":
+      return `Your gown has been issued successfully. Kindly proceed to your designated seat: ${seatText}.`;
+    case "RETURN":
+      return "Your gown has been successfully returned. You may now proceed to the food counter.";
+    case "CANTEEN":
+      return "Verification complete! 🎉 Please enjoy your meal and have a wonderful celebration.";
+    default:
+      return null;
+  }
+};
+
 export default function StaffScanner() {
   const navigate = useNavigate();
   const auth = useMemo(() => getAuthSession(), []);
   const initialMode =
     auth?.role && auth.role !== "ADMIN"
-      ? auth.role === "SEATING"
-        ? "entry"
-        : auth.role.toLowerCase()
+      ? auth.role.toLowerCase() // ENTRY→entry, SEATING→seating, GOWN→gown, RETURN→return, CANTEEN→canteen
       : "entry";
   const [activeMode, setActiveMode] = useState(
     SCANNER_MODES[initialMode] ? initialMode : "entry",
@@ -121,12 +150,12 @@ export default function StaffScanner() {
   const currentMode = SCANNER_MODES[activeMode];
   const enabledModes =
     auth?.role === "ADMIN"
-      ? undefined
+      ? undefined // admin can use all modes
       : auth?.role
-        ? [auth.role === "SEATING" ? "entry" : auth.role.toLowerCase()]
+        ? [auth.role.toLowerCase()] // each staff member only sees their own mode
         : undefined;
 
-  const hiddenModes = ["seating"];
+  const hiddenModes = []; // all modes are visible
 
   const submitScan = async (rawToken) => {
     const normalizedToken = normalizeScannedValue(rawToken);
@@ -168,6 +197,12 @@ export default function StaffScanner() {
           ? `${studentResponse.seat.section}-${studentResponse.seat.number}`
           : null;
 
+      const dynamicMessage = getDynamicMessage(
+        currentMode.scanType,
+        scanResponse.success,
+        seatLabel,
+      );
+
       setResult({
         status: scanResponse.success
           ? STATE_LABEL[scanResponse.state] || "SUCCESS"
@@ -179,6 +214,7 @@ export default function StaffScanner() {
         seat: seatLabel,
         nextPhase: nextPhase.label,
         nextPhaseIcon: nextPhase.icon,
+        message: dynamicMessage,
       });
       setShowResult(true);
     } catch (scanError) {
@@ -375,6 +411,7 @@ export default function StaffScanner() {
                 seat={result?.seat}
                 nextPhase={result?.nextPhase}
                 nextPhaseIcon={result?.nextPhaseIcon}
+                message={result?.message}
               />
             </ScannerFrame>
           </div>

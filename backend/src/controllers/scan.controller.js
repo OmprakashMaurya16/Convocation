@@ -50,37 +50,24 @@ const scanQR = async (req, res) => {
     let message = "";
 
     if (scanType === "ENTRY" && student.state === "REGISTERED") {
+      // Entry gate: mark student as checked-in. Seat is assigned at the seating station.
+      student.state = "CHECKED_IN";
+      student.timestamps.checkedInAt = new Date();
+      valid = true;
+      message = "Student checked in at entry gate";
+    } else if (scanType === "SEATING" && student.state === "CHECKED_IN") {
+      // Seating station: assign a seat and mark student as seated.
       const now = new Date();
-
       const seat = await findNextAvailableSeat();
       if (!seat) {
         message = "No available seats";
+        valid = false;
       } else {
         student.seat = seat;
         student.state = "SEATED";
-        student.timestamps.checkedInAt = now;
         student.timestamps.seatedAt = now;
         valid = true;
         message = `Seat assigned: ${seat.section}${seat.number}`;
-      }
-    } else if (scanType === "SEATING" && student.state === "CHECKED_IN") {
-      const now = new Date();
-      student.state = "SEATED";
-      student.timestamps.seatedAt = now;
-
-      // Backward-compatible: if someone is still in CHECKED_IN, seat them here.
-      if (!student.seat?.section || !student.seat?.number) {
-        const seat = await findNextAvailableSeat();
-        if (!seat) {
-          message = "No available seats";
-          valid = false;
-        } else {
-          student.seat = seat;
-          valid = true;
-          message = `Seat assigned: ${seat.section}${seat.number}`;
-        }
-      } else {
-        valid = true;
       }
     } else if (scanType === "GOWN" && student.state === "SEATED") {
       student.state = "GOWN_ISSUED";

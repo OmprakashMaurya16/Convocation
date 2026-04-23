@@ -40,6 +40,12 @@ const seedDatabase = async () => {
         role: "ENTRY",
       },
       {
+        name: "Seating Staff",
+        email: "seating@convocation.com",
+        password: "Seating@Vit",
+        role: "SEATING",
+      },
+      {
         name: "Gown Staff",
         email: "gown@convocation.com",
         password: "Gown@Vit",
@@ -81,6 +87,7 @@ const seedDatabase = async () => {
         department: "INFT",
         phone: "9000000001",
         email: "",
+        company: "",
         qrToken: generateQRToken("23101A0001"),
         state: "REGISTERED",
       },
@@ -88,8 +95,8 @@ const seedDatabase = async () => {
         name: "Vivaan Shah",
         studentId: "23101A0002",
         department: "INFT",
-        phone: "9000000002",
-        email: "",
+        phone: "",
+        company: "",
         qrToken: generateQRToken("23101A0002"),
         state: "REGISTERED",
       },
@@ -99,6 +106,7 @@ const seedDatabase = async () => {
         department: "INFT",
         phone: "9000000003",
         email: "",
+        company: "",
         qrToken: generateQRToken("23101A0003"),
         state: "REGISTERED",
       },
@@ -108,6 +116,7 @@ const seedDatabase = async () => {
         department: "INFT",
         phone: "9000000004",
         email: "",
+        company: "",
         qrToken: generateQRToken("23101A0004"),
         state: "REGISTERED",
       },
@@ -117,6 +126,7 @@ const seedDatabase = async () => {
         department: "INFT",
         phone: "9000000005",
         email: "",
+        company: "",
         qrToken: generateQRToken("23101A0005"),
         state: "REGISTERED",
       },
@@ -126,6 +136,7 @@ const seedDatabase = async () => {
         department: "INFT",
         phone: "9000000006",
         email: "",
+        company: "",
         qrToken: generateQRToken("23101A0006"),
         state: "REGISTERED",
       },
@@ -135,6 +146,7 @@ const seedDatabase = async () => {
         department: "INFT",
         phone: "9000000007",
         email: "",
+        company: "",
         qrToken: generateQRToken("23101A0007"),
         state: "REGISTERED",
       },
@@ -146,6 +158,7 @@ const seedDatabase = async () => {
         department: "CMPN",
         phone: "9000000011",
         email: "",
+        company: "",
         qrToken: generateQRToken("23102A0001"),
         state: "REGISTERED",
       },
@@ -155,6 +168,7 @@ const seedDatabase = async () => {
         department: "CMPN",
         phone: "9000000012",
         email: "",
+        company: "",
         qrToken: generateQRToken("23102A0002"),
         state: "REGISTERED",
       },
@@ -164,6 +178,7 @@ const seedDatabase = async () => {
         department: "CMPN",
         phone: "9000000013",
         email: "",
+        company: "",
         qrToken: generateQRToken("23102A0003"),
         state: "REGISTERED",
       },
@@ -173,6 +188,7 @@ const seedDatabase = async () => {
         department: "CMPN",
         phone: "9000000014",
         email: "",
+        company: "",
         qrToken: generateQRToken("23102A0004"),
         state: "REGISTERED",
       },
@@ -182,6 +198,7 @@ const seedDatabase = async () => {
         department: "CMPN",
         phone: "9000000015",
         email: "",
+        company: "",
         qrToken: generateQRToken("23102A0005"),
         state: "REGISTERED",
       },
@@ -191,6 +208,7 @@ const seedDatabase = async () => {
         department: "CMPN",
         phone: "9000000016",
         email: "",
+        company: "",
         qrToken: generateQRToken("23102A0006"),
         state: "REGISTERED",
       },
@@ -200,6 +218,7 @@ const seedDatabase = async () => {
         department: "CMPN",
         phone: "9000000017",
         email: "",
+        company: "",
         qrToken: generateQRToken("23102A0007"),
         state: "REGISTERED",
       },
@@ -211,6 +230,7 @@ const seedDatabase = async () => {
         department: "EXTC",
         phone: "9000000021",
         email: "",
+        company: "",
         qrToken: generateQRToken("23103A0001"),
         state: "REGISTERED",
       },
@@ -220,6 +240,7 @@ const seedDatabase = async () => {
         department: "EXTC",
         phone: "9000000022",
         email: "",
+        company: "",
         qrToken: generateQRToken("23103A0002"),
         state: "REGISTERED",
       },
@@ -229,6 +250,7 @@ const seedDatabase = async () => {
         department: "EXTC",
         phone: "9000000023",
         email: "",
+        company: "",
         qrToken: generateQRToken("23103A0003"),
         state: "REGISTERED",
       },
@@ -238,6 +260,7 @@ const seedDatabase = async () => {
         department: "EXTC",
         phone: "9000000024",
         email: "",
+        company: "",
         qrToken: generateQRToken("23103A0004"),
         state: "REGISTERED",
       },
@@ -247,6 +270,7 @@ const seedDatabase = async () => {
         department: "EXTC",
         phone: "9000000025",
         email: "",
+        company: "",
         qrToken: generateQRToken("23103A0005"),
         state: "REGISTERED",
       },
@@ -256,6 +280,7 @@ const seedDatabase = async () => {
         department: "EXTC",
         phone: "9000000026",
         email: "",
+        company: "",
         qrToken: generateQRToken("23103A0006"),
         state: "REGISTERED",
       },
@@ -265,6 +290,7 @@ const seedDatabase = async () => {
         department: "EXTC",
         phone: "9000000027",
         email: "",
+        company: "",
         qrToken: generateQRToken("23103A0007"),
         state: "REGISTERED",
       },
@@ -276,6 +302,7 @@ const seedDatabase = async () => {
         department: "EXCS",
         phone: "9000000031",
         email: "",
+        company: "",
         qrToken: generateQRToken("23104A0001"),
         state: "REGISTERED",
       },
@@ -285,6 +312,7 @@ const seedDatabase = async () => {
         department: "EXCS",
         phone: "9000000032",
         email: "",
+        company: "",
         qrToken: generateQRToken("23104A0002"),
         state: "REGISTERED",
       },
@@ -294,6 +322,7 @@ const seedDatabase = async () => {
         department: "EXCS",
         phone: "9000000033",
         email: "",
+        company: "",
         qrToken: generateQRToken("23104A0003"),
         state: "REGISTERED",
       },
@@ -303,6 +332,7 @@ const seedDatabase = async () => {
         department: "EXCS",
         phone: "9000000034",
         email: "",
+        company: "",
         qrToken: generateQRToken("23104A0004"),
         state: "REGISTERED",
       },
@@ -312,6 +342,7 @@ const seedDatabase = async () => {
         department: "EXCS",
         phone: "9000000035",
         email: "",
+        company: "",
         qrToken: generateQRToken("23104A0005"),
         state: "REGISTERED",
       },
@@ -321,6 +352,7 @@ const seedDatabase = async () => {
         department: "EXCS",
         phone: "9000000036",
         email: "",
+        company: "",
         qrToken: generateQRToken("23104A0006"),
         state: "REGISTERED",
       },
@@ -330,6 +362,7 @@ const seedDatabase = async () => {
         department: "EXCS",
         phone: "9000000037",
         email: "",
+        company: "",
         qrToken: generateQRToken("23104A0007"),
         state: "REGISTERED",
       },
@@ -341,6 +374,7 @@ const seedDatabase = async () => {
         department: "BIOMD",
         phone: "9000000041",
         email: "",
+        company: "",
         qrToken: generateQRToken("23105A0001"),
         state: "REGISTERED",
       },
@@ -350,6 +384,7 @@ const seedDatabase = async () => {
         department: "BIOMD",
         phone: "9000000042",
         email: "",
+        company: "",
         qrToken: generateQRToken("23105A0002"),
         state: "REGISTERED",
       },
@@ -359,6 +394,7 @@ const seedDatabase = async () => {
         department: "BIOMD",
         phone: "9000000043",
         email: "",
+        company: "",
         qrToken: generateQRToken("23105A0003"),
         state: "REGISTERED",
       },
@@ -368,6 +404,7 @@ const seedDatabase = async () => {
         department: "BIOMD",
         phone: "9000000044",
         email: "",
+        company: "",
         qrToken: generateQRToken("23105A0004"),
         state: "REGISTERED",
       },
@@ -377,6 +414,7 @@ const seedDatabase = async () => {
         department: "BIOMD",
         phone: "9000000045",
         email: "",
+        company: "",
         qrToken: generateQRToken("23105A0005"),
         state: "REGISTERED",
       },
@@ -386,6 +424,7 @@ const seedDatabase = async () => {
         department: "BIOMD",
         phone: "9000000046",
         email: "",
+        company: "",
         qrToken: generateQRToken("23105A0006"),
         state: "REGISTERED",
       },
@@ -395,6 +434,7 @@ const seedDatabase = async () => {
         department: "BIOMD",
         phone: "9000000047",
         email: "",
+        company: "",
         qrToken: generateQRToken("23105A0007"),
         state: "REGISTERED",
       },
@@ -410,7 +450,7 @@ const seedDatabase = async () => {
 
     console.log("\n========== SEED SUMMARY ==========");
     console.log("✓ 1 Admin account created");
-    console.log("✓ 4 Staff accounts created (ENTRY, GOWN, RETURN, CANTEEN)");
+    console.log("✓ 5 Staff accounts created (ENTRY, SEATING, GOWN, RETURN, CANTEEN)");
     console.log(`✓ ${students.length} Students created`);
     console.log("===================================\n");
 
@@ -419,25 +459,28 @@ const seedDatabase = async () => {
     console.log("  Email: vidyalankar.admin@convocation.com");
     console.log("  Password: Admin@Vit\n");
 
-    console.log("STAFF - ENTRY:");
+    console.log("STAFF - ENTRY (Auditorium Gate):");
     console.log("  Email: entry@convocation.com");
     console.log("  Password: Entry@Vit\n");
 
-    console.log("STAFF - GOWN:");
+    console.log("STAFF - SEATING (Seating Station):");
+    console.log("  Email: seating@convocation.com");
+    console.log("  Password: Seating@Vit\n");
+
+    console.log("STAFF - GOWN (Robe Counter):");
     console.log("  Email: gown@convocation.com");
     console.log("  Password: Gown@Vit\n");
 
-    console.log("STAFF - RETURN:");
+    console.log("STAFF - RETURN (Return Counter):");
     console.log("  Email: return@convocation.com");
     console.log("  Password: return@Vit\n");
 
-    console.log("STAFF - CANTEEN:");
+    console.log("STAFF - CANTEEN (Canteen Token Desk):");
     console.log("  Email: canteen@convocation.com");
     console.log("  Password: Canteen@Vit\n");
 
-    console.log("STUDENTS:");
-    console.log("  1. Omprakash Maurya - Roll No: 23101A0030");
-    console.log("  2. Kamraan Mulani - Roll No: 23101A0028\n");
+    console.log("STUDENTS (login with Roll No.):");
+    console.log("  Fill Mobile + Company at login — saved to DB automatically\n");
 
     process.exit(0);
   } catch (error) {

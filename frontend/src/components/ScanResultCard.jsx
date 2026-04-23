@@ -7,6 +7,7 @@ export default function ScanResultCard({
   seat,
   nextPhase,
   nextPhaseIcon,
+  message,
   show,
 }) {
   if (!show) return null;
@@ -15,6 +16,7 @@ export default function ScanResultCard({
     <div className="w-full max-w-3xl pointer-events-auto">
       <div className="rounded-2xl bg-surface-container-lowest p-1 shadow-2xl">
         <div className={`${statusColor} rounded-xl p-4 sm:p-5 md:p-6`}>
+          {/* ── Header: status + time ── */}
           <div className="mb-4 flex items-start justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="rounded-xl bg-white/20 p-2.5 sm:p-3">
@@ -39,6 +41,22 @@ export default function ScanResultCard({
             </span>
           </div>
 
+          {/* ── Dynamic stage message ── */}
+          {message && (
+            <div className="mb-4 flex items-start gap-3 rounded-xl border border-white/25 bg-white/15 px-4 py-3 backdrop-blur-sm">
+              <span
+                className="material-symbols-outlined mt-0.5 shrink-0 text-xl text-white"
+                style={{ fontVariationSettings: "'FILL' 1" }}
+              >
+                campaign
+              </span>
+              <p className="font-body text-sm font-medium leading-snug text-white sm:text-base">
+                {message}
+              </p>
+            </div>
+          )}
+
+          {/* ── Detail rows ── */}
           <div className="rounded-xl bg-white/12 p-3.5 backdrop-blur-sm sm:p-4 md:p-5">
             {student && (
               <div className="grid grid-cols-1 gap-1 border-b border-white/15 pb-3 sm:grid-cols-[110px_1fr] sm:gap-3">

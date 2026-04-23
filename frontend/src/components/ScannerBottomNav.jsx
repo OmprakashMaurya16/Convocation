@@ -14,7 +14,11 @@ export default function ScannerBottomNav({
 
   const visibleModes = modes.filter((mode) => !hiddenModes.includes(mode.id));
   const gridColsClass =
-    visibleModes.length >= 4 ? "grid-cols-4" : "grid-cols-3";
+    visibleModes.length === 5
+      ? "grid-cols-5"
+      : visibleModes.length >= 4
+        ? "grid-cols-4"
+        : "grid-cols-3";
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-outline-variant/40 bg-surface/95 backdrop-blur-sm pb-[env(safe-area-inset-bottom)]">

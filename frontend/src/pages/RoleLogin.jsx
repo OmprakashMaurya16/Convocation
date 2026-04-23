@@ -15,6 +15,8 @@ export default function RoleLogin() {
   const [password, setPassword] = useState("");
   const [studentId, setStudentId] = useState("");
   const [studentName, setStudentName] = useState("");
+  const [studentMobile, setStudentMobile] = useState("");
+  const [studentCompany, setStudentCompany] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -91,9 +93,26 @@ export default function RoleLogin() {
       return;
     }
 
+    // Verify student exists
     const student = await apiRequest(
       `/api/student/${encodeURIComponent(studentId.trim())}`,
     );
+
+    // Save mobile + company to DB if provided
+    const mobile = studentMobile.trim();
+    const company = studentCompany.trim();
+    if (mobile || company) {
+      await apiRequest(
+        `/api/student/${encodeURIComponent(studentId.trim())}/profile`,
+        {
+          method: "PATCH",
+          body: {
+            ...(mobile ? { phone: mobile } : {}),
+            ...(company ? { company } : {}),
+          },
+        },
+      );
+    }
 
     localStorage.setItem(
       "convocation.student",
@@ -158,10 +177,10 @@ export default function RoleLogin() {
           </p>
 
           {role === "student" ? (
-            <>
+          <>
               <label className="block">
                 <span className="mb-1 block font-label text-[11px] font-semibold uppercase tracking-wide text-on-surface-variant">
-                  Student ID
+                  Student ID / Roll No. <span className="text-error">*</span>
                 </span>
                 <input
                   type="text"
@@ -174,13 +193,39 @@ export default function RoleLogin() {
 
               <label className="block">
                 <span className="mb-1 block font-label text-[11px] font-semibold uppercase tracking-wide text-on-surface-variant">
-                  Full Name (optional)
+                  Full Name
                 </span>
                 <input
                   type="text"
                   value={studentName}
                   onChange={(event) => setStudentName(event.target.value)}
                   placeholder="Your full name"
+                  className="w-full rounded-lg border border-outline-variant/60 bg-white px-3 py-2.5 font-body text-sm text-on-background outline-none transition-colors focus:border-primary"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-1 block font-label text-[11px] font-semibold uppercase tracking-wide text-on-surface-variant">
+                  Mobile Number
+                </span>
+                <input
+                  type="tel"
+                  value={studentMobile}
+                  onChange={(event) => setStudentMobile(event.target.value)}
+                  placeholder="+91 98765 43210"
+                  className="w-full rounded-lg border border-outline-variant/60 bg-white px-3 py-2.5 font-body text-sm text-on-background outline-none transition-colors focus:border-primary"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-1 block font-label text-[11px] font-semibold uppercase tracking-wide text-on-surface-variant">
+                  Company / Employer
+                </span>
+                <input
+                  type="text"
+                  value={studentCompany}
+                  onChange={(event) => setStudentCompany(event.target.value)}
+                  placeholder="e.g. Infosys, TCS, Google…"
                   className="w-full rounded-lg border border-outline-variant/60 bg-white px-3 py-2.5 font-body text-sm text-on-background outline-none transition-colors focus:border-primary"
                 />
               </label>

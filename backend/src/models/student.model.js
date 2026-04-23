@@ -19,7 +19,7 @@ const studentSchema = new mongoose.Schema(
     },
 
     phone: String,
-    email: String,
+    company: String,
 
     qrToken: {
       type: String,
