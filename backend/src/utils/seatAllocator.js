@@ -4,6 +4,7 @@ const {
   getActiveEventStartAt,
   buildActiveEventStudentFilter,
 } = require("./eventSession.js");
+const DepartmentConfig = require("../models/departmentConfig.model.js");
 
 const FRONT_ROWS = ["A", "B", "C", "D", "E", "F", "G", "H", "I"];
 const SIDE_ROWS = ["J", "K", "L", "M", "N", "O"];
@@ -62,13 +63,27 @@ const getBlockedSeatIdSet = async () => {
   return blocked;
 };
 
-const findNextAvailableSeat = async () => {
-  const [occupied, blocked] = await Promise.all([
+const findNextAvailableSeat = async (department) => {
+  const [occupied, blocked, deptConfigs] = await Promise.all([
     getOccupiedSeatIdSet(),
     getBlockedSeatIdSet(),
+    DepartmentConfig.find()
   ]);
 
-  for (const seatId of ALL_SEAT_IDS) {
+  let availableSeats = ALL_SEAT_IDS;
+
+  if (department) {
+    const config = deptConfigs.find(c => c.department === department);
+    if (config && config.startSeat && config.endSeat) {
+      const startIndex = ALL_SEAT_IDS.indexOf(config.startSeat);
+      const endIndex = ALL_SEAT_IDS.indexOf(config.endSeat);
+      if (startIndex !== -1 && endIndex !== -1 && startIndex <= endIndex) {
+        availableSeats = ALL_SEAT_IDS.slice(startIndex, endIndex + 1);
+      }
+    }
+  }
+
+  for (const seatId of availableSeats) {
     if (!occupied.has(seatId) && !blocked.has(seatId)) {
       return parseSeatId(seatId);
     }

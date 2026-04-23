@@ -19,3 +19,4 @@ export { default as ScannerFrame } from './ScannerFrame';
 export { default as ScannerBottomNav } from './ScannerBottomNav';
 export { default as ScannerTopBar } from './ScannerTopBar';
 export { default as ErrorStateCard } from './ErrorStateCard';
+export { default as DepartmentSeatingConfig } from './DepartmentSeatingConfig';

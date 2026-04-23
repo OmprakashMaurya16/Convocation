@@ -1,6 +1,8 @@
 const Student = require("../models/student.model.js");
 const ScanLog = require("../models/scanLog.model.js");
 const SeatOverride = require("../models/seatOverride.model.js");
+const DepartmentConfig = require("../models/departmentConfig.model.js");
+const { ALL_SEAT_IDS } = require("../utils/seatAllocator.js");
 const { getIO, emitToAdmins } = require("../socket.js");
 const {
   getActiveEventStartAt,
@@ -633,6 +635,66 @@ const resetEventProgress = async (req, res) => {
   }
 };
 
+const getDepartmentConfigs = async (req, res) => {
+  try {
+    const configs = await DepartmentConfig.find();
+    res.json({ configs });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+const setDepartmentConfig = async (req, res) => {
+  try {
+    const { department, startSeat, endSeat } = req.body;
+    
+    if (!department || !startSeat || !endSeat) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    const upperDept = department.toUpperCase();
+    const upperStart = startSeat.toUpperCase();
+    const upperEnd = endSeat.toUpperCase();
+
+    const startIndex = ALL_SEAT_IDS.indexOf(upperStart);
+    const endIndex = ALL_SEAT_IDS.indexOf(upperEnd);
+
+    if (startIndex === -1 || endIndex === -1 || startIndex > endIndex) {
+      return res.status(400).json({ message: "Invalid seat range" });
+    }
+
+    const otherConfigs = await DepartmentConfig.find({ department: { $ne: upperDept } });
+    for (const config of otherConfigs) {
+      const otherStart = ALL_SEAT_IDS.indexOf(config.startSeat);
+      const otherEnd = ALL_SEAT_IDS.indexOf(config.endSeat);
+
+      if (otherStart !== -1 && otherEnd !== -1) {
+        if (startIndex <= otherEnd && otherStart <= endIndex) {
+          return res.status(400).json({ 
+            message: `Seat range overlaps with department ${config.department} (${config.startSeat} to ${config.endSeat})` 
+          });
+        }
+      }
+    }
+
+    const config = await DepartmentConfig.findOneAndUpdate(
+      { department: upperDept },
+      { startSeat: upperStart, endSeat: upperEnd },
+      { new: true, upsert: true }
+    );
+
+    res.json({ success: true, config });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+const getAllSeats = (req, res) => {
+  res.json({ seats: ALL_SEAT_IDS });
+};
+
 module.exports = {
   getStats,
   getRecentScans,
@@ -644,4 +706,7 @@ module.exports = {
   getSeatOverrides,
   setSeatOverride,
   getSeatingReport,
+  getDepartmentConfigs,
+  setDepartmentConfig,
+  getAllSeats,
 };

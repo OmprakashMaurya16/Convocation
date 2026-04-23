@@ -87,7 +87,7 @@ const scanQR = async (req, res) => {
     if (normalizedScanType === "ENTRY" && student.state === "REGISTERED") {
       // Entry gate: check-in + assign seat.
       const now = new Date();
-      const seat = await findNextAvailableSeat();
+      const seat = await findNextAvailableSeat(student.department);
       if (!seat) {
         message = "No available seats";
         valid = false;

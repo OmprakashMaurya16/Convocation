@@ -11,6 +11,9 @@ const {
   getSeatOverrides,
   setSeatOverride,
   getSeatingReport,
+  getDepartmentConfigs,
+  setDepartmentConfig,
+  getAllSeats,
 } = require("../controllers/admin.controller.js");
 const { allowRoles } = require("../middlewares/role.middleware.js");
 
@@ -36,5 +39,9 @@ router.get("/seat-overrides", protect, allowRoles("ADMIN"), getSeatOverrides);
 router.post("/seat-overrides", protect, allowRoles("ADMIN"), setSeatOverride);
 
 router.get("/seating-report", protect, allowRoles("ADMIN"), getSeatingReport);
+
+router.get("/department-configs", protect, allowRoles("ADMIN"), getDepartmentConfigs);
+router.post("/department-configs", protect, allowRoles("ADMIN"), setDepartmentConfig);
+router.get("/all-seats", protect, allowRoles("ADMIN"), getAllSeats);
 
 module.exports = router;

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Header, StatsCard } from "../components";
+import { Header, StatsCard, DepartmentSeatingConfig } from "../components";
 import SeatMap from "../components/SeatMap";
 import { apiRequest, clearAuthSession, getAuthSession } from "../utils/api";
 import { createSocketClient } from "../utils/socket";
@@ -22,6 +22,7 @@ export default function SeatingArchitecture({
   const resetArmTimeoutRef = useRef(null);
 
   const [isDownloading, setIsDownloading] = useState(false);
+  const [configOpen, setConfigOpen] = useState(false);
 
   const [stats, setStats] = useState(null);
   const [seatStatusById, setSeatStatusById] = useState(null);
@@ -375,6 +376,18 @@ export default function SeatingArchitecture({
           <div className="flex flex-col items-end gap-1 flex-shrink-0">
             <div className="flex items-center gap-2">
               <button
+                onClick={() => setConfigOpen(true)}
+                className={`flex items-center justify-center gap-1 xs:gap-1.5 px-2 xs:px-3 md:px-4 py-1.5 xs:py-2 rounded-lg md:rounded-xl font-label font-bold text-[8px] xs:text-[9px] sm:text-xs md:text-sm shadow-sm border transition-all touch-none min-h-[44px] bg-white text-slate-600 border-outline-variant/20 hover:bg-surface-container-low`}
+              >
+                <span className="material-symbols-outlined text-xs md:text-base">
+                  settings
+                </span>
+                <span className="whitespace-nowrap">
+                  Configure Seats
+                </span>
+              </button>
+
+              <button
                 onClick={handleDownloadPdf}
                 disabled={isDownloading}
                 className={`flex items-center justify-center gap-1 xs:gap-1.5 px-2 xs:px-3 md:px-4 py-1.5 xs:py-2 rounded-lg md:rounded-xl font-label font-bold text-[8px] xs:text-[9px] sm:text-xs md:text-sm shadow-sm border transition-all touch-none min-h-[44px] bg-white text-slate-600 border-outline-variant/20 hover:bg-surface-container-low ${
@@ -463,6 +476,11 @@ export default function SeatingArchitecture({
           Scan
         </span>
       </button>
+
+      <DepartmentSeatingConfig 
+        open={configOpen} 
+        onClose={() => setConfigOpen(false)} 
+      />
     </div>
   );
 }
