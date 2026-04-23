@@ -35,8 +35,8 @@ const getStudentByQR = async (req, res) => {
       canteenToken: student.canteenToken,
     });
   } catch (error) {
-    console.error(error.message);
-    res.status(500).json({ message: "Server error" });
+    console.error("getStudentByQR Error:", error);
+    res.status(500).json({ message: error.message || "Server error" });
   }
 };
 
@@ -79,8 +79,8 @@ const updateStudentProfile = async (req, res) => {
       company: student.company || null,
     });
   } catch (error) {
-    console.error(error.message);
-    res.status(500).json({ message: "Server error" });
+    console.error("updateStudentProfile Error:", error);
+    res.status(500).json({ message: error.message || "Server error" });
   }
 };
 
@@ -288,8 +288,8 @@ const eventLogin = async (req, res) => {
       canteenToken: student.canteenToken,
     });
   } catch (error) {
-    console.error(error.message);
-    res.status(500).json({ message: "Server error" });
+    console.error("eventLogin Error:", error);
+    res.status(500).json({ message: error.message || "Server error" });
   }
 };
 
