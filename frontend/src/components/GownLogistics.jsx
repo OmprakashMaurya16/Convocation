@@ -18,7 +18,7 @@ export default function GownLogistics({ stats }) {
   return (
     <div className="lg:col-span-4 bg-surface-container-lowest p-3 xs:p-4 sm:p-6 lg:p-8 rounded-lg md:rounded-xl flex flex-col">
       <h4 className="font-headline font-bold text-xs xs:text-sm md:text-base text-on-surface mb-3 xs:mb-4 md:mb-6 lg:mb-8">
-        Gown Logistics
+        Robe Logistics
       </h4>
 
       <div className="flex-1 flex items-center justify-center min-h-[200px] xs:min-h-[240px] md:min-h-[280px]">

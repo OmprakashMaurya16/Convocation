@@ -29,7 +29,14 @@ const studentSchema = new mongoose.Schema(
 
     state: {
       type: String,
-      enum: ["REGISTERED", "CHECKED_IN", "SEATED", "GOWN_ISSUED", "COMPLETED"],
+      enum: [
+        "REGISTERED",
+        "CHECKED_IN",
+        "SEATED",
+        "GOWN_ISSUED",
+        "COMPLETED",
+        "CANTEEN_TOKEN_ISSUED",
+      ],
       default: "REGISTERED",
       index: true,
     },
@@ -54,11 +61,19 @@ const studentSchema = new mongoose.Schema(
       },
     },
 
+    canteenToken: {
+      issued: {
+        type: Boolean,
+        default: false,
+      },
+    },
+
     timestamps: {
       checkedInAt: Date,
       seatedAt: Date,
       gownIssuedAt: Date,
       returnedAt: Date,
+      canteenTokenIssuedAt: Date,
     },
   },
   {

@@ -6,8 +6,9 @@ const { findNextAvailableSeat } = require("../utils/seatAllocator.js");
 const SCAN_TYPE_LOCATION = {
   ENTRY: "Entry Gate",
   SEATING: "Seating Station",
-  GOWN: "Gown Counter",
-  RETURN: "Return Counter",
+  GOWN: "Robe Counter",
+  RETURN: "Robe Return Counter",
+  CANTEEN: "Canteen Token Desk",
 };
 
 const scanQR = async (req, res) => {
@@ -91,6 +92,11 @@ const scanQR = async (req, res) => {
       student.gown.returned = true;
       student.timestamps.returnedAt = new Date();
       valid = true;
+    } else if (scanType === "CANTEEN" && student.state === "COMPLETED") {
+      student.state = "CANTEEN_TOKEN_ISSUED";
+      student.canteenToken.issued = true;
+      student.timestamps.canteenTokenIssuedAt = new Date();
+      valid = true;
     } else {
       message = "Invalid stage transition";
     }
@@ -144,6 +150,7 @@ const scanQR = async (req, res) => {
           qrToken: student.qrToken,
           state: student.state,
           gown: student.gown,
+          canteenToken: student.canteenToken,
           seat: student.seat,
         });
       }
@@ -166,22 +173,46 @@ const scanQR = async (req, res) => {
       }
 
       if (valid) {
-        const [total, checkedIn, seated, gownIssued, completed] =
-          await Promise.all([
-            Student.countDocuments(),
-            Student.countDocuments({
-              state: {
-                $in: ["CHECKED_IN", "SEATED", "GOWN_ISSUED", "COMPLETED"],
-              },
-            }),
-            Student.countDocuments({
-              state: { $in: ["SEATED", "GOWN_ISSUED", "COMPLETED"] },
-            }),
-            Student.countDocuments({
-              state: { $in: ["GOWN_ISSUED", "COMPLETED"] },
-            }),
-            Student.countDocuments({ state: "COMPLETED" }),
-          ]);
+        const [
+          total,
+          checkedIn,
+          seated,
+          gownIssued,
+          completed,
+          canteenTokenIssued,
+        ] = await Promise.all([
+          Student.countDocuments(),
+          Student.countDocuments({
+            state: {
+              $in: [
+                "CHECKED_IN",
+                "SEATED",
+                "GOWN_ISSUED",
+                "COMPLETED",
+                "CANTEEN_TOKEN_ISSUED",
+              ],
+            },
+          }),
+          Student.countDocuments({
+            state: {
+              $in: [
+                "SEATED",
+                "GOWN_ISSUED",
+                "COMPLETED",
+                "CANTEEN_TOKEN_ISSUED",
+              ],
+            },
+          }),
+          Student.countDocuments({
+            state: {
+              $in: ["GOWN_ISSUED", "COMPLETED", "CANTEEN_TOKEN_ISSUED"],
+            },
+          }),
+          Student.countDocuments({
+            state: { $in: ["COMPLETED", "CANTEEN_TOKEN_ISSUED"] },
+          }),
+          Student.countDocuments({ state: "CANTEEN_TOKEN_ISSUED" }),
+        ]);
 
         console.log("[scanQR] Emitting stats:updated -", {
           total,
@@ -189,6 +220,7 @@ const scanQR = async (req, res) => {
           seated,
           gownIssued,
           completed,
+          canteenTokenIssued,
         });
 
         emitToAdmins("stats:updated", {
@@ -197,6 +229,7 @@ const scanQR = async (req, res) => {
           seated,
           gownIssued,
           completed,
+          canteenTokenIssued,
         });
 
         // Department chart depends on "present" counts, so refresh it on any valid scan.

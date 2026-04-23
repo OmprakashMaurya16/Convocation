@@ -6,8 +6,9 @@ const { getIO, emitToAdmins } = require("../socket.js");
 const SCAN_TYPE_LOCATION = {
   ENTRY: "Entry Gate",
   SEATING: "Seating Station",
-  GOWN: "Gown Counter",
+  GOWN: "Robe Counter",
   RETURN: "Return Counter",
+  CANTEEN: "Canteen Token Desk",
 };
 
 const getStats = async (req, res) => {
@@ -17,15 +18,30 @@ const getStats = async (req, res) => {
     // Cumulative stage counters (monotonic): once a candidate progresses,
     // they are still considered checked-in / seated for ops reporting.
     const checkedIn = await Student.countDocuments({
-      state: { $in: ["CHECKED_IN", "SEATED", "GOWN_ISSUED", "COMPLETED"] },
+      state: {
+        $in: [
+          "CHECKED_IN",
+          "SEATED",
+          "GOWN_ISSUED",
+          "COMPLETED",
+          "CANTEEN_TOKEN_ISSUED",
+        ],
+      },
     });
     const seated = await Student.countDocuments({
-      state: { $in: ["SEATED", "GOWN_ISSUED", "COMPLETED"] },
+      state: {
+        $in: ["SEATED", "GOWN_ISSUED", "COMPLETED", "CANTEEN_TOKEN_ISSUED"],
+      },
     });
     const gownIssued = await Student.countDocuments({
-      state: { $in: ["GOWN_ISSUED", "COMPLETED"] },
+      state: { $in: ["GOWN_ISSUED", "COMPLETED", "CANTEEN_TOKEN_ISSUED"] },
     });
-    const completed = await Student.countDocuments({ state: "COMPLETED" });
+    const completed = await Student.countDocuments({
+      state: { $in: ["COMPLETED", "CANTEEN_TOKEN_ISSUED"] },
+    });
+    const canteenTokenIssued = await Student.countDocuments({
+      state: "CANTEEN_TOKEN_ISSUED",
+    });
 
     res.json({
       total,
@@ -33,6 +49,7 @@ const getStats = async (req, res) => {
       seated,
       gownIssued,
       completed,
+      canteenTokenIssued,
     });
   } catch (error) {
     console.error(error.message);
@@ -45,8 +62,8 @@ const getRecentScans = async (req, res) => {
     const logs = await ScanLog.find()
       .sort({ createdAt: -1 })
       .limit(20)
-      .populate({ 
-        path: "studentId", 
+      .populate({
+        path: "studentId",
         select: "name qrToken studentId department state",
         strictPopulate: false, // Continue even if ref doesn't exist
       });
@@ -69,7 +86,7 @@ const getRecentScans = async (req, res) => {
         } else {
           // Fallback: try to fetch directly if populate failed
           const student = await Student.findById(log.studentId).select(
-            "name studentId department"
+            "name studentId department",
           );
           if (student) {
             studentName = student.name || "Unknown";
@@ -95,7 +112,7 @@ const getRecentScans = async (req, res) => {
           status: log.status,
           location: SCAN_TYPE_LOCATION[log.scanType] || "Scanner",
         };
-      })
+      }),
     );
 
     res.json({ scans });
@@ -197,7 +214,7 @@ const getDepartmentStats = async (req, res) => {
     const deptStats = departments.map((dept) => {
       const deptStudents = allStudents.filter((s) => s.department === dept);
       const totalExpected = deptStudents.length;
-      
+
       // Mark as PRESENT if student:
       // 1. Checked-in (CHECKED_IN state)
       // 2. Seated (SEATED state)
@@ -208,7 +225,9 @@ const getDepartmentStats = async (req, res) => {
         (s) => s.state !== "REGISTERED",
       ).length;
 
-      console.log(`[getDepartmentStats] ${dept}: ${presentCount}/${totalExpected} present`);
+      console.log(
+        `[getDepartmentStats] ${dept}: ${presentCount}/${totalExpected} present`,
+      );
 
       return {
         name: dept,

@@ -1,11 +1,11 @@
-import { useState } from 'react';
-import ScannerTopBar from '../components/ScannerTopBar';
-import ScannerFrame from '../components/ScannerFrame';
-import ScanResultCard from '../components/ScanResultCard';
-import ScannerBottomNav from '../components/ScannerBottomNav';
+import { useState } from "react";
+import ScannerTopBar from "../components/ScannerTopBar";
+import ScannerFrame from "../components/ScannerFrame";
+import ScanResultCard from "../components/ScanResultCard";
+import ScannerBottomNav from "../components/ScannerBottomNav";
 
 export default function ReturnScan() {
-  const [activeMode, setActiveMode] = useState('return');
+  const [activeMode, setActiveMode] = useState("return");
   const [showResult, setShowResult] = useState(true);
 
   const handleScan = () => {
@@ -16,17 +16,17 @@ export default function ReturnScan() {
   return (
     <div className="flex flex-col h-screen bg-background overflow-hidden">
       {/* Top Bar */}
-      <ScannerTopBar 
-        title="Scanner Ledger" 
+      <ScannerTopBar
+        title="Scanner Ledger"
         counter="Return Counter C-3"
-        onSettings={() => console.log('Settings')}
+        onSettings={() => console.log("Settings")}
       />
 
       {/* Main Scanning Area */}
       <ScannerFrame>
         <ScanResultCard
           show={showResult}
-          status="GOWN RETURNED"
+          status="ROBE RETURNED"
           statusColor="bg-amber-500"
           time="15:08:47"
           student="David Okonkwo"

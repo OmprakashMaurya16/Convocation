@@ -15,29 +15,35 @@ const SCANNER_MODES = {
     scanType: "ENTRY",
   },
   gown: {
-    counter: "Gown Counter A-2",
+    counter: "Robe Counter A-2",
     scanType: "GOWN",
   },
   return: {
     counter: "Return Counter C-3",
     scanType: "RETURN",
   },
+  canteen: {
+    counter: "Canteen Token Desk",
+    scanType: "CANTEEN",
+  },
 };
 
 const STATE_TO_NEXT_PHASE = {
   REGISTERED: { label: "Entry Scan", icon: "login" },
   CHECKED_IN: { label: "Seating Scan", icon: "chair" },
-  SEATED: { label: "Gown Counter", icon: "checkroom" },
+  SEATED: { label: "Robe Counter", icon: "checkroom" },
   GOWN_ISSUED: { label: "Return Counter", icon: "assignment_return" },
-  COMPLETED: { label: "Completed", icon: "school" },
+  COMPLETED: { label: "Canteen Token", icon: "restaurant" },
+  CANTEEN_TOKEN_ISSUED: { label: "Done", icon: "check_circle" },
 };
 
 const STATE_LABEL = {
   REGISTERED: "REGISTERED",
   CHECKED_IN: "CHECKED IN",
   SEATED: "SEATED",
-  GOWN_ISSUED: "GOWN ISSUED",
-  COMPLETED: "COMPLETED",
+  GOWN_ISSUED: "ROBE ISSUED",
+  COMPLETED: "ROBE RETURN",
+  CANTEEN_TOKEN_ISSUED: "CANTEEN TOKEN ISSUED",
 };
 
 export default function StaffScanner() {
@@ -66,6 +72,12 @@ export default function StaffScanner() {
     // Accept plain token, URL token (?qrToken=...), or last path segment token.
     if (!raw) return "";
 
+    // Support internal payloads like "<studentId>|A-12" (seat QR)
+    if (raw.includes("|")) {
+      const tokenPart = raw.split("|")[0]?.trim();
+      if (tokenPart) return tokenPart;
+    }
+
     if (raw.includes("http://") || raw.includes("https://")) {
       try {
         const url = new URL(raw);
@@ -84,7 +96,7 @@ export default function StaffScanner() {
 
   const handleLogout = () => {
     clearAuthSession();
-    navigate("/");
+    navigate("/", { replace: true });
   };
 
   useEffect(() => {
@@ -217,6 +229,8 @@ export default function StaffScanner() {
   const startCamera = async () => {
     if (startingCamera || cameraActive) return;
 
+    // Hide the last scan result card when opening the camera.
+    setShowResult(false);
     setStartingCamera(true);
     setCameraError("");
 
@@ -352,7 +366,7 @@ export default function StaffScanner() {
               }
             >
               <ScanResultCard
-                show={showResult}
+                show={showResult && !cameraActive && !startingCamera}
                 status={result?.status}
                 statusColor={result?.statusColor}
                 time={result?.time}

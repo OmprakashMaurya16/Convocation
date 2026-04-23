@@ -26,7 +26,7 @@ export default function AdminDashboard() {
 
   const handleLogout = () => {
     clearAuthSession();
-    navigate("/");
+    navigate("/", { replace: true });
   };
 
   useEffect(() => {
@@ -136,13 +136,13 @@ export default function AdminDashboard() {
       color: "surface-tint",
     },
     {
-      title: "Gowns Issued",
+      title: "Robes Issued",
       value: (stats?.gownIssued || 0).toLocaleString(),
       percentage: toPercent(stats?.gownIssued || 0),
       color: "tertiary-container",
     },
     {
-      title: "Completed / Returned",
+      title: "Robe Return",
       value: (stats?.completed || 0).toLocaleString(),
       percentage: toPercent(stats?.completed || 0),
       color: "error",

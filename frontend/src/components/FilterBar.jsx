@@ -3,8 +3,9 @@ const STAGE_OPTIONS = [
   { label: "Registered", value: "REGISTERED" },
   { label: "Checked-In", value: "CHECKED_IN" },
   { label: "Seated", value: "SEATED" },
-  { label: "Gown Issued", value: "GOWN_ISSUED" },
-  { label: "Completed", value: "COMPLETED" },
+  { label: "Robe Issued", value: "GOWN_ISSUED" },
+  { label: "Robe Return", value: "COMPLETED" },
+  { label: "Canteen Token Issued", value: "CANTEEN_TOKEN_ISSUED" },
 ];
 
 export default function FilterBar({
@@ -50,7 +51,7 @@ export default function FilterBar({
         </select>
       </div>
 
-      {/* Gown Return Status Filter */}
+      {/* Robe Return Status Filter */}
       <div className="bg-surface-container-low px-3 xs:px-4 md:px-5 py-2 xs:py-2.5 md:py-3 rounded-lg md:rounded-xl flex items-center gap-2 xs:gap-3 border border-outline-variant/20 touch-none min-h-[44px] hidden sm:flex">
         <span className="text-[8px] xs:text-sm md:text-base font-label font-semibold text-slate-500">
           Live data filters

@@ -199,7 +199,7 @@ export default function CandidateLedger({
                 checkroom
               </span>
               <span className="hidden sm:inline whitespace-nowrap">
-                Manual Issue Gown
+                Manual Issue Robe
               </span>
             </button>
           </div>
@@ -224,7 +224,7 @@ export default function CandidateLedger({
           <CandidateStatsCard
             icon="styler"
             iconBg="bg-purple-50 text-purple-600"
-            label="Gowns Issued"
+            label="Robes Issued"
             value={gownsIssued.toLocaleString()}
             badge={gownIssuedPercent}
             badgeColor="text-purple-600"

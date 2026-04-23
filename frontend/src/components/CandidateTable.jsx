@@ -4,14 +4,16 @@ const STAGE_STYLE = {
   SEATED: "bg-green-50 text-green-700 border-green-100",
   GOWN_ISSUED: "bg-amber-50 text-amber-700 border-amber-100",
   COMPLETED: "bg-emerald-50 text-emerald-700 border-emerald-100",
+  CANTEEN_TOKEN_ISSUED: "bg-slate-50 text-slate-700 border-slate-200",
 };
 
 const STAGE_LABEL = {
   REGISTERED: "REGISTERED",
   CHECKED_IN: "CHECKED-IN",
   SEATED: "SEATED",
-  GOWN_ISSUED: "GOWN ISSUED",
-  COMPLETED: "COMPLETED",
+  GOWN_ISSUED: "ROBE ISSUED",
+  COMPLETED: "ROBE RETURN",
+  CANTEEN_TOKEN_ISSUED: "CANTEEN TOKEN",
 };
 
 export default function CandidateTable({

@@ -51,6 +51,12 @@ const seedDatabase = async () => {
         password: "return@Vit",
         role: "RETURN",
       },
+      {
+        name: "Canteen Staff",
+        email: "canteen@convocation.com",
+        password: "Canteen@Vit",
+        role: "CANTEEN",
+      },
     ];
 
     for (const staffData of staffUsers) {
@@ -404,8 +410,8 @@ const seedDatabase = async () => {
 
     console.log("\n========== SEED SUMMARY ==========");
     console.log("✓ 1 Admin account created");
-    console.log("✓ 3 Staff accounts created (ENTRY, GOWN, RETURN)");
-    console.log("✓ 5  Students created");
+    console.log("✓ 4 Staff accounts created (ENTRY, GOWN, RETURN, CANTEEN)");
+    console.log(`✓ ${students.length} Students created`);
     console.log("===================================\n");
 
     console.log("📋 Credentials:\n");
@@ -419,11 +425,15 @@ const seedDatabase = async () => {
 
     console.log("STAFF - GOWN:");
     console.log("  Email: gown@convocation.com");
-    console.log("  Password: gown@Vit\n");
+    console.log("  Password: Gown@Vit\n");
 
     console.log("STAFF - RETURN:");
     console.log("  Email: return@convocation.com");
     console.log("  Password: return@Vit\n");
+
+    console.log("STAFF - CANTEEN:");
+    console.log("  Email: canteen@convocation.com");
+    console.log("  Password: Canteen@Vit\n");
 
     console.log("STUDENTS:");
     console.log("  1. Omprakash Maurya - Roll No: 23101A0030");

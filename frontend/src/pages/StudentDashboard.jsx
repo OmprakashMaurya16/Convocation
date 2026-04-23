@@ -13,14 +13,16 @@ const STAGE_ORDER = [
   "SEATED",
   "GOWN_ISSUED",
   "COMPLETED",
+  "CANTEEN_TOKEN_ISSUED",
 ];
 
 const STAGE_METADATA = {
   REGISTERED: { label: "Registered", icon: "check" },
   CHECKED_IN: { label: "Checked-in", icon: "login" },
   SEATED: { label: "Seated", icon: "chair" },
-  GOWN_ISSUED: { label: "Gown Issued", icon: "checkroom" },
-  COMPLETED: { label: "Completed", icon: "school" },
+  GOWN_ISSUED: { label: "Robe Issued", icon: "checkroom" },
+  COMPLETED: { label: "Robe Return", icon: "assignment_return" },
+  CANTEEN_TOKEN_ISSUED: { label: "Canteen Token", icon: "restaurant" },
 };
 
 export default function StudentDashboard() {
@@ -32,7 +34,7 @@ export default function StudentDashboard() {
 
   const handleLogout = () => {
     clearStudentSession();
-    navigate("/");
+    navigate("/", { replace: true });
   };
 
   useEffect(() => {
@@ -92,6 +94,7 @@ export default function StudentDashboard() {
 
   const currentState = student?.state || "REGISTERED";
   const currentStateIndex = STAGE_ORDER.indexOf(currentState);
+  const safeCurrentStateIndex = currentStateIndex >= 0 ? currentStateIndex : 0;
 
   const stages = STAGE_ORDER.map((stage) => {
     const stageIndex = STAGE_ORDER.indexOf(stage);
@@ -100,7 +103,7 @@ export default function StudentDashboard() {
       label: STAGE_METADATA[stage].label,
       icon: STAGE_METADATA[stage].icon,
       completed: stageIndex < currentStateIndex,
-      active: stageIndex === currentStateIndex,
+      active: stageIndex === safeCurrentStateIndex,
     };
   });
 
@@ -117,6 +120,13 @@ export default function StudentDashboard() {
   const studentId = student?.qrToken || studentSession?.studentId || "-";
   const department = student?.department || "Department not available";
   const qrImage = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(studentId)}`;
+  const seatQrPayload =
+    seatSection !== "-" && seatNumber !== "-"
+      ? `${studentId}|${seatSection}-${seatNumber}`
+      : null;
+  const seatQrImage = seatQrPayload
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(seatQrPayload)}`
+    : null;
 
   return (
     <div className="flex flex-col min-h-screen bg-surface">
@@ -192,6 +202,30 @@ export default function StudentDashboard() {
           </p>
         </section>
 
+        {/* Seat QR (visible once seated) */}
+        {seatQrImage ? (
+          <section className="bg-surface-container-lowest rounded-lg md:rounded-xl p-6 md:p-8 flex flex-col items-center shadow-sm relative overflow-hidden">
+            <div
+              className="absolute top-0 left-0 w-1 h-full"
+              style={{
+                background: "linear-gradient(135deg, #002547 0%, #1b3b5f 100%)",
+              }}
+            ></div>
+
+            <div className="p-3 md:p-4 bg-white rounded-lg border-2 border-primary/10">
+              <img
+                alt="Seat Verification QR Code"
+                className="w-36 md:w-44 lg:w-48 h-36 md:h-44 lg:h-48"
+                src={seatQrImage}
+              />
+            </div>
+
+            <p className="mt-4 md:mt-6 font-label text-xs md:text-xs uppercase tracking-tighter text-outline font-bold">
+              Seat Verification (scan at checkpoints)
+            </p>
+          </section>
+        ) : null}
+
         {/* Status Tracker Section */}
         <section className="bg-surface-container-low rounded-lg md:rounded-xl p-4 md:p-6">
           <h3 className="font-headline font-bold text-sm md:text-base text-primary mb-4 md:mb-6 flex items-center gap-2">
@@ -209,7 +243,7 @@ export default function StudentDashboard() {
             <div
               className="absolute top-3 left-0 h-1 rounded-full"
               style={{
-                width: `${Math.max(0, ((currentStateIndex + 1) / STAGE_ORDER.length) * 100)}%`,
+                width: `${Math.max(0, ((safeCurrentStateIndex + 1) / STAGE_ORDER.length) * 100)}%`,
                 background: "linear-gradient(135deg, #002547 0%, #1b3b5f 100%)",
               }}
             ></div>
@@ -256,7 +290,7 @@ export default function StudentDashboard() {
         <section className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
           <div className="bg-surface-container-highest rounded-lg md:rounded-xl p-4 md:p-5 flex flex-col justify-center items-center lg:col-span-2">
             <span className="font-label text-xs md:text-sm uppercase tracking-widest text-on-secondary-container font-bold mb-1 md:mb-2">
-              Section
+              Row Number
             </span>
             <span className="font-headline font-extrabold text-3xl md:text-5xl text-primary">
               {seatSection}

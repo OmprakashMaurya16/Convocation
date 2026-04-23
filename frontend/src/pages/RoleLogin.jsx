@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { apiRequest } from "../utils/api";
+import { apiRequest, getAuthSession, getStudentSession } from "../utils/api";
 
 const ROLE_OPTIONS = [
   { id: "admin", label: "Admin" },
@@ -17,6 +17,21 @@ export default function RoleLogin() {
   const [studentName, setStudentName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    const auth = getAuthSession();
+    if (auth?.token && auth?.role) {
+      navigate(auth.role === "ADMIN" ? "/admin-dashboard" : "/staff-scanner", {
+        replace: true,
+      });
+      return;
+    }
+
+    const student = getStudentSession();
+    if (student?.qrToken || student?.studentId) {
+      navigate("/student-dashboard", { replace: true });
+    }
+  }, [navigate]);
 
   const roleTitle = useMemo(() => {
     if (role === "admin") return "Admin Access";
@@ -63,11 +78,11 @@ export default function RoleLogin() {
     );
 
     if (apiRole === "ADMIN") {
-      navigate("/admin-dashboard");
+      navigate("/admin-dashboard", { replace: true });
       return;
     }
 
-    navigate("/staff-scanner");
+    navigate("/staff-scanner", { replace: true });
   };
 
   const handleStudentLogin = async () => {
@@ -89,7 +104,7 @@ export default function RoleLogin() {
       }),
     );
 
-    navigate("/student-dashboard");
+    navigate("/student-dashboard", { replace: true });
   };
 
   const handleSubmit = async (event) => {

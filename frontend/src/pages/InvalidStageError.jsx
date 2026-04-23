@@ -1,39 +1,43 @@
-import { useState, useEffect } from 'react';
-import ScannerTopBar from '../components/ScannerTopBar';
-import ScannerFrame from '../components/ScannerFrame';
-import ScannerBottomNav from '../components/ScannerBottomNav';
-import ErrorStateCard from '../components/ErrorStateCard';
+import { useState, useEffect } from "react";
+import ScannerTopBar from "../components/ScannerTopBar";
+import ScannerFrame from "../components/ScannerFrame";
+import ScannerBottomNav from "../components/ScannerBottomNav";
+import ErrorStateCard from "../components/ErrorStateCard";
 
 const ERROR_STATES = {
   invalidStage: {
-    title: 'INVALID STAGE',
-    message: 'Student has not checked in at the main entry yet.',
-    protocol: 'Advise the attendee to return to the North Gate Entrance to complete the initial registration scan before proceeding to this station.',
-    icon: 'close',
+    title: "INVALID STAGE",
+    message: "Student has not checked in at the main entry yet.",
+    protocol:
+      "Advise the attendee to return to the North Gate Entrance to complete the initial registration scan before proceeding to this station.",
+    icon: "close",
   },
   missingSeating: {
-    title: 'NOT SEATED',
-    message: 'Student must be seated before proceeding to gown issuance.',
-    protocol: 'Please direct the student to the Seating Hall to complete seating assignment. Return here once seating is confirmed.',
-    icon: 'event_seat',
+    title: "NOT SEATED",
+    message: "Student must be seated before proceeding to robe issuance.",
+    protocol:
+      "Please direct the student to the Seating Hall to complete seating assignment. Return here once seating is confirmed.",
+    icon: "event_seat",
   },
   alreadyProcessed: {
-    title: 'ALREADY PROCESSED',
-    message: 'This student has already completed this stage.',
-    protocol: 'Verify the student ID is correct. If duplicate scan, advise student to proceed to the next checkpoint.',
-    icon: 'check_circle',
+    title: "ALREADY PROCESSED",
+    message: "This student has already completed this stage.",
+    protocol:
+      "Verify the student ID is correct. If duplicate scan, advise student to proceed to the next checkpoint.",
+    icon: "check_circle",
   },
   invalidQR: {
-    title: 'INVALID QR CODE',
-    message: 'The scanned QR code is not recognized.',
-    protocol: 'Ensure the QR code is clearly visible and undamaged. Ask the student for their ID number and manually enter it.',
-    icon: 'error',
+    title: "INVALID QR CODE",
+    message: "The scanned QR code is not recognized.",
+    protocol:
+      "Ensure the QR code is clearly visible and undamaged. Ask the student for their ID number and manually enter it.",
+    icon: "error",
   },
 };
 
 export default function InvalidStageError() {
-  const [activeMode, setActiveMode] = useState('gown');
-  const [errorState, setErrorState] = useState('invalidStage');
+  const [activeMode, setActiveMode] = useState("gown");
+  const [errorState, setErrorState] = useState("invalidStage");
   const [showError, setShowError] = useState(true);
   const [countdown, setCountdown] = useState(5);
 
@@ -64,10 +68,10 @@ export default function InvalidStageError() {
   return (
     <div className="flex flex-col h-screen bg-background overflow-hidden relative">
       {/* Top Bar */}
-      <ScannerTopBar 
-        title="Scanner Ledger" 
+      <ScannerTopBar
+        title="Scanner Ledger"
         counter="SECURE ACCESS SYSTEM"
-        onSettings={() => console.log('Settings')}
+        onSettings={() => console.log("Settings")}
       />
 
       {/* Main Area with Error Overlay */}
@@ -98,8 +102,10 @@ export default function InvalidStageError() {
 
       {/* Debug: Error State Selector (Remove in Production) */}
       <div className="hidden md:block fixed top-20 right-4 z-50 bg-white shadow-lg rounded-lg p-4 max-w-xs">
-        <p className="text-xs font-bold text-gray-600 mb-2">Debug: Select Error State</p>
-        <select 
+        <p className="text-xs font-bold text-gray-600 mb-2">
+          Debug: Select Error State
+        </p>
+        <select
           value={errorState}
           onChange={(e) => {
             setErrorState(e.target.value);

@@ -1,8 +1,9 @@
 const STAGE_LABELS = {
   ENTRY: "Checked-In",
   SEATING: "Seated",
-  GOWN: "Gown Issued",
-  RETURN: "Completed",
+  GOWN: "Robe Issued",
+  RETURN: "Robe Return",
+  CANTEEN: "Canteen Token",
 };
 
 export default function LiveScanTable({ scanData = [] }) {
@@ -14,13 +15,15 @@ export default function LiveScanTable({ scanData = [] }) {
 
   const getStageColor = (stage) => {
     switch (stage) {
-      case "Gown Issued":
+      case "Robe Issued":
         return "bg-secondary-container text-on-secondary-container";
+      case "Canteen Token":
+        return "bg-surface-container-high text-on-secondary-container";
       case "Checked-In":
         return "bg-surface-container-highest text-on-surface-variant";
       case "Seated":
         return "bg-surface-tint/20 text-on-primary-fixed-variant";
-      case "Completed":
+      case "Robe Return":
         return "bg-tertiary-container text-on-tertiary-container";
       default:
         return "bg-surface-container-lowest";

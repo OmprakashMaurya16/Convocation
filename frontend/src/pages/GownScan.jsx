@@ -1,11 +1,11 @@
-import { useState } from 'react';
-import ScannerTopBar from '../components/ScannerTopBar';
-import ScannerFrame from '../components/ScannerFrame';
-import ScanResultCard from '../components/ScanResultCard';
-import ScannerBottomNav from '../components/ScannerBottomNav';
+import { useState } from "react";
+import ScannerTopBar from "../components/ScannerTopBar";
+import ScannerFrame from "../components/ScannerFrame";
+import ScanResultCard from "../components/ScanResultCard";
+import ScannerBottomNav from "../components/ScannerBottomNav";
 
 export default function GownScan() {
-  const [activeMode, setActiveMode] = useState('gown');
+  const [activeMode, setActiveMode] = useState("gown");
   const [showResult, setShowResult] = useState(true);
 
   const handleScan = () => {
@@ -16,17 +16,17 @@ export default function GownScan() {
   return (
     <div className="flex flex-col h-screen bg-background overflow-hidden">
       {/* Top Bar */}
-      <ScannerTopBar 
-        title="Scanner Ledger" 
-        counter="Gown Counter A-2"
-        onSettings={() => console.log('Settings')}
+      <ScannerTopBar
+        title="Scanner Ledger"
+        counter="Robe Counter A-2"
+        onSettings={() => console.log("Settings")}
       />
 
       {/* Main Scanning Area */}
       <ScannerFrame>
         <ScanResultCard
           show={showResult}
-          status="GOWN ISSUED"
+          status="ROBE ISSUED"
           statusColor="bg-green-500"
           time="14:22:05"
           student="Amara Okafor"
