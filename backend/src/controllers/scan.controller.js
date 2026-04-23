@@ -105,10 +105,8 @@ const scanQR = async (req, res) => {
     ) {
       // Robe counter: issue gown.
       student.state = "GOWN_ISSUED";
-      if (!student.gown) student.gown = {};
-      if (!student.timestamps) student.timestamps = {};
-      student.gown.issued = true;
-      student.timestamps.gownIssuedAt = new Date();
+      student.set("gown.issued", true);
+      student.set("timestamps.gownIssuedAt", new Date());
       valid = true;
       message = "Robe issued successfully";
     } else if (
@@ -117,16 +115,13 @@ const scanQR = async (req, res) => {
     ) {
       // Auditorium entry/seating verification: mark as seated.
       student.state = "SEATED";
-      if (!student.timestamps) student.timestamps = {};
-      student.timestamps.seatedAt = new Date();
+      student.set("timestamps.seatedAt", new Date());
       valid = true;
       message = "Student seated successfully";
     } else if (normalizedScanType === "RETURN" && student.state === "SEATED") {
       student.state = "COMPLETED";
-      if (!student.gown) student.gown = {};
-      if (!student.timestamps) student.timestamps = {};
-      student.gown.returned = true;
-      student.timestamps.returnedAt = new Date();
+      student.set("gown.returned", true);
+      student.set("timestamps.returnedAt", new Date());
       valid = true;
       message = "Robe returned successfully";
     } else if (
@@ -134,10 +129,8 @@ const scanQR = async (req, res) => {
       student.state === "COMPLETED"
     ) {
       student.state = "CANTEEN_TOKEN_ISSUED";
-      if (!student.canteenToken) student.canteenToken = {};
-      if (!student.timestamps) student.timestamps = {};
-      student.canteenToken.issued = true;
-      student.timestamps.canteenTokenIssuedAt = new Date();
+      student.set("canteenToken.issued", true);
+      student.set("timestamps.canteenTokenIssuedAt", new Date());
       valid = true;
       message = "Canteen token issued successfully";
     } else {
@@ -161,7 +154,8 @@ const scanQR = async (req, res) => {
     if (io) {
       const scanPayload = {
         id: scanLog._id,
-        time: new Date(scanLog.createdAt).toLocaleTimeString([], {
+        time: new Date(scanLog.createdAt).toLocaleTimeString("en-IN", {
+          timeZone: "Asia/Kolkata",
           hour: "2-digit",
           minute: "2-digit",
           second: "2-digit",
