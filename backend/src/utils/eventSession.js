@@ -45,6 +45,19 @@ const setActiveEventStartAt = async (dateValue) => {
 const buildActiveEventStudentFilter = (activeSince) => {
   const sessionStart = activeSince instanceof Date ? activeSince : new Date(0);
   const sessionKey = sessionStart.toISOString();
+
+  // Initial/default session: include legacy/seeded students that haven't been
+  // stamped with a sessionKey yet.
+  if (sessionStart.getTime() === 0) {
+    return {
+      $or: [
+        { "event.sessionKey": sessionKey },
+        { "event.sessionKey": { $exists: false } },
+        { "event.sessionKey": null },
+      ],
+    };
+  }
+
   return { "event.sessionKey": sessionKey };
 };
 

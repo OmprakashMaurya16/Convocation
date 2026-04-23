@@ -11,9 +11,6 @@ const getStudentByQR = async (req, res) => {
 
     const activeSince = await getActiveEventStartAt();
     const activeFilter = buildActiveEventStudentFilter(activeSince);
-    const activeSessionKey = (
-      activeSince instanceof Date ? activeSince : new Date(0)
-    ).toISOString();
 
     // Try to find by qrToken first, then by studentId
     let student = await Student.findOne({ ...activeFilter, qrToken });
@@ -101,6 +98,9 @@ const eventLogin = async (req, res) => {
 
     const activeSince = await getActiveEventStartAt();
     const activeFilter = buildActiveEventStudentFilter(activeSince);
+    const activeSessionKey = (
+      activeSince instanceof Date ? activeSince : new Date(0)
+    ).toISOString();
 
     const trimmedName = String(name || "").trim();
     const trimmedDepartment = String(department || "").trim();
