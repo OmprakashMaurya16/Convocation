@@ -12,11 +12,11 @@ const getStudentByQR = async (req, res) => {
     const activeSince = await getActiveEventStartAt();
     const activeFilter = buildActiveEventStudentFilter(activeSince);
 
-    // Try to find by qrToken first, then by studentId
+    // Try to find by qrToken first, then by studentId (case-insensitive)
     let student = await Student.findOne({ ...activeFilter, qrToken });
 
     if (!student) {
-      student = await Student.findOne({ ...activeFilter, studentId: qrToken });
+      student = await Student.findOne({ ...activeFilter, studentId: new RegExp(`^${qrToken}$`, "i") });
     }
 
     if (!student) {
@@ -52,10 +52,10 @@ const updateStudentProfile = async (req, res) => {
     const activeSince = await getActiveEventStartAt();
     const activeFilter = buildActiveEventStudentFilter(activeSince);
 
-    // Find student by qrToken or studentId
+    // Find student by qrToken or studentId (case-insensitive)
     let student = await Student.findOne({ ...activeFilter, qrToken });
     if (!student) {
-      student = await Student.findOne({ ...activeFilter, studentId: qrToken });
+      student = await Student.findOne({ ...activeFilter, studentId: new RegExp(`^${qrToken}$`, "i") });
     }
 
     if (!student) {
@@ -111,60 +111,67 @@ const eventLogin = async (req, res) => {
       return res.status(400).json({ message: "Student ID is required" });
     }
 
-    if (
-      !trimmedName ||
-      !trimmedDepartment ||
-      !trimmedPhone ||
-      !trimmedCompany
-    ) {
+    if (!trimmedPhone || !trimmedCompany) {
       return res.status(400).json({
-        message:
-          "Student ID, full name, branch/department, mobile number, and company are required",
+        message: "Student ID, mobile number, and company are required",
       });
     }
 
-    // Find student by qrToken or studentId
+    // Validate phone is exactly 10 digits
+    const phoneDigits = trimmedPhone.replace(/\D/g, "");
+    if (phoneDigits.length !== 10) {
+      return res.status(400).json({
+        message: "Mobile number must be exactly 10 digits",
+      });
+    }
+
+    // Find student by qrToken or studentId (case-insensitive for studentId)
     let student = await Student.findOne({ qrToken });
     if (!student) {
-      student = await Student.findOne({ studentId: qrToken });
+      student = await Student.findOne({
+        studentId: new RegExp(`^${qrToken}$`, "i"),
+      });
     }
 
     if (!student) {
       return res.status(404).json({ message: "Student not found" });
     }
 
-    const dbName = String(student.name || "").trim();
-    const dbDepartment = String(student.department || "").trim();
+    // If name and department are provided, optionally check them, otherwise skip strict validation
+    if (trimmedName && trimmedDepartment) {
+      const dbName = String(student.name || "").trim();
+      const dbDepartment = String(student.department || "").trim();
 
-    if (!dbName || !dbDepartment) {
-      return res.status(409).json({
-        message:
-          "Student pre-event data is incomplete (name/branch missing). Please contact admin.",
-      });
-    }
+      if (!dbName || !dbDepartment) {
+        return res.status(409).json({
+          message:
+            "Student pre-event data is incomplete (name/branch missing). Please contact admin.",
+        });
+      }
 
-    const normalizeName = (value) =>
-      String(value || "")
-        .trim()
-        .replace(/\s+/g, " ")
-        .toLowerCase();
+      const normalizeName = (value) =>
+        String(value || "")
+          .trim()
+          .replace(/\s+/g, " ")
+          .toLowerCase();
 
-    const normalizeDepartment = (value) =>
-      String(value || "")
-        .trim()
-        .replace(/\s+/g, " ")
-        .toLowerCase();
+      const normalizeDepartment = (value) =>
+        String(value || "")
+          .trim()
+          .replace(/\s+/g, " ")
+          .toLowerCase();
 
-    const matchesName = normalizeName(trimmedName) === normalizeName(dbName);
-    const matchesDepartment =
-      normalizeDepartment(trimmedDepartment) ===
-      normalizeDepartment(dbDepartment);
+      const matchesName = normalizeName(trimmedName) === normalizeName(dbName);
+      const matchesDepartment =
+        normalizeDepartment(trimmedDepartment) ===
+        normalizeDepartment(dbDepartment);
 
-    if (!matchesName || !matchesDepartment) {
-      return res.status(400).json({
-        message:
-          "Entered name/branch does not match our records. Please check and try again.",
-      });
+      if (!matchesName || !matchesDepartment) {
+        return res.status(400).json({
+          message:
+            "Entered name/branch does not match our records. Please check and try again.",
+        });
+      }
     }
 
     const now = new Date();
@@ -172,14 +179,17 @@ const eventLogin = async (req, res) => {
     const shouldStartNewSessionForStudent =
       currentSessionKey !== activeSessionKey;
 
+    // Only set sessionKey if there's an actual active event (not epoch time)
+    const isValidActiveEvent = activeSessionKey && activeSessionKey !== new Date(0).toISOString();
+
     if (shouldStartNewSessionForStudent) {
       student.event = {
         ...(student.event || {}),
-        sessionKey: activeSessionKey,
+        ...(isValidActiveEvent && { sessionKey: activeSessionKey }),
         registeredAt: now,
       };
       student.state = "REGISTERED";
-      student.seat = undefined;
+      student.seat = null;
       student.gown = {
         ...(student.gown || {}),
         issued: false,
@@ -195,7 +205,7 @@ const eventLogin = async (req, res) => {
     } else {
       student.event = {
         ...(student.event || {}),
-        sessionKey: activeSessionKey,
+        ...(isValidActiveEvent && { sessionKey: activeSessionKey }),
         registeredAt: now,
       };
     }

@@ -96,7 +96,14 @@ const studentSchema = new mongoose.Schema(
 // Sparse index allows many students with no seat assigned.
 studentSchema.index(
   { "event.sessionKey": 1, "seat.section": 1, "seat.number": 1 },
-  { unique: true, sparse: true },
+  {
+    unique: true,
+    sparse: true,
+    partialFilterExpression: {
+      "seat.section": { $exists: true },
+      "seat.number": { $exists: true },
+    },
+  },
 );
 
 const Student = mongoose.model("Student", studentSchema);
