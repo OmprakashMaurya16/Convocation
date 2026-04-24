@@ -206,8 +206,8 @@ const scanQR = async (req, res) => {
         });
       }
 
-      // When seating is confirmed (ENTRY scan), flip the seat to occupied (green).
-      if (valid && normalizedScanType === "ENTRY") {
+      // When seating is confirmed (ENTRY scan or GOWN scan), flip the seat to occupied (green).
+      if (valid && (normalizedScanType === "ENTRY" || normalizedScanType === "GOWN")) {
         const confirmedSeatId =
           student.seat?.section && student.seat?.number
             ? `${student.seat.section}${student.seat.number}`
