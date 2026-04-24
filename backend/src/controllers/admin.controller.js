@@ -411,7 +411,7 @@ const getSeatOccupancy = async (req, res) => {
       const state = String(student.state || "").trim();
 
       if (
-        ["SEAT_ALLOCATED", "COMPLETED", "CANTEEN_TOKEN_ISSUED"].includes(state)
+        ["SEAT_ALLOCATED", "GOWN_ISSUED", "COMPLETED", "CANTEEN_TOKEN_ISSUED"].includes(state)
       ) {
         confirmedSeatIds.push(seatId);
       } else {

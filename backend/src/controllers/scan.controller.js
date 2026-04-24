@@ -131,6 +131,8 @@ const scanQR = async (req, res) => {
     let valid = false;
     let message = "";
 
+    console.log(`[scanQR] Starting ${normalizedScanType} scan for student ${student.studentId}, current state: ${student.state}, previousSeatId: ${previousSeatId}`);
+
     if (normalizedScanType === "ENTRY" && student.state === "REGISTERED") {
       // Entry gate: check-in + assign seat.
       const now = new Date();
@@ -260,7 +262,10 @@ const scanQR = async (req, res) => {
           ? `${student.seat.section}${student.seat.number}`
           : null;
 
+      console.log(`[scanQR] After ${normalizedScanType} processing - previousSeatId: ${previousSeatId}, nextSeatId: ${nextSeatId}, valid: ${valid}`);
+
       if (valid && nextSeatId && nextSeatId !== previousSeatId) {
+        console.log(`[scanQR] Emitting seating:seatAssigned for ${nextSeatId} (NEW seat)`);
         emitToAdmins("seating:seatAssigned", {
           seatId: nextSeatId,
           seatStatus: "reserved",
@@ -273,25 +278,21 @@ const scanQR = async (req, res) => {
         });
       }
 
-      // When seating is confirmed (ENTRY scan), flip the seat to occupied (green).
-      if (valid && normalizedScanType === "ENTRY") {
-        const confirmedSeatId =
-          student.seat?.section && student.seat?.number
-            ? `${student.seat.section}${student.seat.number}`
-            : null;
+      // Confirm seat is occupied (green) for ALL valid scans once seat is allocated
+      if (valid && (previousSeatId || nextSeatId)) {
+        const seatIdToConfirm = previousSeatId || nextSeatId;
+        console.log(`[scanQR] Emitting seating:seatConfirmed for ${seatIdToConfirm} - status: occupied (scanType: ${normalizedScanType}, previousSeatId: ${previousSeatId}, nextSeatId: ${nextSeatId})`);
 
-        if (confirmedSeatId) {
-          emitToAdmins("seating:seatConfirmed", {
-            seatId: confirmedSeatId,
-            seatStatus: "occupied",
-            student: {
-              name: student.name,
-              studentId: student.studentId,
-              department: student.department || null,
-              state: student.state,
-            },
-          });
-        }
+        emitToAdmins("seating:seatConfirmed", {
+          seatId: seatIdToConfirm,
+          seatStatus: "occupied",
+          student: {
+            name: student.name,
+            studentId: student.studentId,
+            department: student.department || null,
+            state: student.state,
+          },
+        });
       }
 
       if (valid) {
