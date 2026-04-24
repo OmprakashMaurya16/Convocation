@@ -76,7 +76,7 @@ const seedDatabase = async () => {
     };
 
     const students = [
-      // INFT (7)
+      // INFT (10)
       {
         name: "Aarav Mehta",
         studentId: "23101A0001",
@@ -92,6 +92,7 @@ const seedDatabase = async () => {
         studentId: "23101A0002",
         department: "INFT",
         phone: "",
+        email: "",
         company: "",
         qrToken: generateQRToken("23101A0002"),
         state: "REGISTERED",
@@ -146,8 +147,38 @@ const seedDatabase = async () => {
         qrToken: generateQRToken("23101A0007"),
         state: "REGISTERED",
       },
+      {
+        name: "Manav Kapoor",
+        studentId: "23101A0008",
+        department: "INFT",
+        phone: "",
+        email: "",
+        company: "",
+        qrToken: generateQRToken("23101A0008"),
+        state: "REGISTERED",
+      },
+      {
+        name: "Dev Malhotra",
+        studentId: "23101A0009",
+        department: "INFT",
+        phone: "",
+        email: "",
+        company: "",
+        qrToken: generateQRToken("23101A0009"),
+        state: "REGISTERED",
+      },
+      {
+        name: "Nitin Arora",
+        studentId: "23101A0010",
+        department: "INFT",
+        phone: "",
+        email: "",
+        company: "",
+        qrToken: generateQRToken("23101A0010"),
+        state: "REGISTERED",
+      },
 
-      // CMPN (7)
+      // CMPN (10)
       {
         name: "Aryan Gupta",
         studentId: "23102A0001",
@@ -218,8 +249,38 @@ const seedDatabase = async () => {
         qrToken: generateQRToken("23102A0007"),
         state: "REGISTERED",
       },
+      {
+        name: "Saurabh Jain",
+        studentId: "23102A0008",
+        department: "CMPN",
+        phone: "",
+        email: "",
+        company: "",
+        qrToken: generateQRToken("23102A0008"),
+        state: "REGISTERED",
+      },
+      {
+        name: "Keshav Meena",
+        studentId: "23102A0009",
+        department: "CMPN",
+        phone: "",
+        email: "",
+        company: "",
+        qrToken: generateQRToken("23102A0009"),
+        state: "REGISTERED",
+      },
+      {
+        name: "Tarun Saini",
+        studentId: "23102A0010",
+        department: "CMPN",
+        phone: "",
+        email: "",
+        company: "",
+        qrToken: generateQRToken("23102A0010"),
+        state: "REGISTERED",
+      },
 
-      // EXTC (7)
+      // EXTC (10)
       {
         name: "Prathamesh More",
         studentId: "23103A0001",
@@ -290,8 +351,38 @@ const seedDatabase = async () => {
         qrToken: generateQRToken("23103A0007"),
         state: "REGISTERED",
       },
+      {
+        name: "Ritesh Patil",
+        studentId: "23103A0008",
+        department: "EXTC",
+        phone: "",
+        email: "",
+        company: "",
+        qrToken: generateQRToken("23103A0008"),
+        state: "REGISTERED",
+      },
+      {
+        name: "Amol Kale",
+        studentId: "23103A0009",
+        department: "EXTC",
+        phone: "",
+        email: "",
+        company: "",
+        qrToken: generateQRToken("23103A0009"),
+        state: "REGISTERED",
+      },
+      {
+        name: "Vishal Khot",
+        studentId: "23103A0010",
+        department: "EXTC",
+        phone: "",
+        email: "",
+        company: "",
+        qrToken: generateQRToken("23103A0010"),
+        state: "REGISTERED",
+      },
 
-      // EXCS (7)
+      // EXCS (10)
       {
         name: "Harsh Agarwal",
         studentId: "23104A0001",
@@ -362,8 +453,38 @@ const seedDatabase = async () => {
         qrToken: generateQRToken("23104A0007"),
         state: "REGISTERED",
       },
+      {
+        name: "Rohit Khanna",
+        studentId: "23104A0008",
+        department: "EXCS",
+        phone: "",
+        email: "",
+        company: "",
+        qrToken: generateQRToken("23104A0008"),
+        state: "REGISTERED",
+      },
+      {
+        name: "Varun Arora",
+        studentId: "23104A0009",
+        department: "EXCS",
+        phone: "",
+        email: "",
+        company: "",
+        qrToken: generateQRToken("23104A0009"),
+        state: "REGISTERED",
+      },
+      {
+        name: "Nikhil Batra",
+        studentId: "23104A0010",
+        department: "EXCS",
+        phone: "",
+        email: "",
+        company: "",
+        qrToken: generateQRToken("23104A0010"),
+        state: "REGISTERED",
+      },
 
-      // BIOMD (7)
+      // BIOMD (10)
       {
         name: "Ananya Iyer",
         studentId: "23105A0001",
@@ -434,8 +555,38 @@ const seedDatabase = async () => {
         qrToken: generateQRToken("23105A0007"),
         state: "REGISTERED",
       },
+      {
+        name: "Lakshmi Nair",
+        studentId: "23105A0008",
+        department: "BIOMD",
+        phone: "",
+        email: "",
+        company: "",
+        qrToken: generateQRToken("23105A0008"),
+        state: "REGISTERED",
+      },
+      {
+        name: "Sneha Pillai",
+        studentId: "23105A0009",
+        department: "BIOMD",
+        phone: "",
+        email: "",
+        company: "",
+        qrToken: generateQRToken("23105A0009"),
+        state: "REGISTERED",
+      },
+      {
+        name: "Adarsh Menon",
+        studentId: "23105A0010",
+        department: "BIOMD",
+        phone: "",
+        email: "",
+        company: "",
+        qrToken: generateQRToken("23105A0010"),
+        state: "REGISTERED",
+      },
 
-      // MMS (7)
+      // MMS (10)
       {
         name: "Priya Sharma",
         studentId: "23106A0001",
@@ -506,8 +657,37 @@ const seedDatabase = async () => {
         qrToken: generateQRToken("23106A0007"),
         state: "REGISTERED",
       },
+      {
+        name: "Kiran Joshi",
+        studentId: "23106A0008",
+        department: "MMS",
+        phone: "",
+        email: "",
+        company: "",
+        qrToken: generateQRToken("23106A0008"),
+        state: "REGISTERED",
+      },
+      {
+        name: "Pankaj Yadav",
+        studentId: "23106A0009",
+        department: "MMS",
+        phone: "",
+        email: "",
+        company: "",
+        qrToken: generateQRToken("23106A0009"),
+        state: "REGISTERED",
+      },
+      {
+        name: "Mehul Shah",
+        studentId: "23106A0010",
+        department: "MMS",
+        phone: "",
+        email: "",
+        company: "",
+        qrToken: generateQRToken("23106A0010"),
+        state: "REGISTERED",
+      },
     ];
-
     for (const studentData of students) {
       const student = new Student(studentData);
       await student.save();
