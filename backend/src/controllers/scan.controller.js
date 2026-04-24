@@ -206,25 +206,20 @@ const scanQR = async (req, res) => {
         });
       }
 
-      // When seating is confirmed (ENTRY scan or GOWN scan), flip the seat to occupied (green).
-      if (valid && (normalizedScanType === "ENTRY" || normalizedScanType === "GOWN")) {
-        const confirmedSeatId =
-          student.seat?.section && student.seat?.number
-            ? `${student.seat.section}${student.seat.number}`
-            : null;
+      // Confirm seat is occupied (green) for ALL valid scans once seat is allocated
+      if (valid && (previousSeatId || nextSeatId)) {
+        const seatIdToConfirm = previousSeatId || nextSeatId;
 
-        if (confirmedSeatId) {
-          emitToAdmins("seating:seatConfirmed", {
-            seatId: confirmedSeatId,
-            seatStatus: "occupied",
-            student: {
-              name: student.name,
-              studentId: student.studentId,
-              department: student.department || null,
-              state: student.state,
-            },
-          });
-        }
+        emitToAdmins("seating:seatConfirmed", {
+          seatId: seatIdToConfirm,
+          seatStatus: "occupied",
+          student: {
+            name: student.name,
+            studentId: student.studentId,
+            department: student.department || null,
+            state: student.state,
+          },
+        });
       }
 
       if (valid) {
