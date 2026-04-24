@@ -1,5 +1,6 @@
 const Student = require("../models/student.model.js");
 const { emitToAdmins, emitToStudent } = require("../socket.js");
+const statsCache = require("../utils/statsCache.js");
 const {
   getActiveEventStartAt,
   buildActiveEventStudentFilter,
@@ -274,6 +275,9 @@ const eventLogin = async (req, res) => {
         state: "CANTEEN_TOKEN_ISSUED",
       }),
     ]);
+
+    // Invalidate stats cache since new student added
+    statsCache.invalidate('stats_');
 
     emitToAdmins("stats:updated", {
       total,

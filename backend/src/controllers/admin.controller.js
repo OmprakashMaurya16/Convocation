@@ -2,6 +2,7 @@ const Student = require("../models/student.model.js");
 const ScanLog = require("../models/scanLog.model.js");
 const SeatOverride = require("../models/seatOverride.model.js");
 const DepartmentConfig = require("../models/departmentConfig.model.js");
+const statsCache = require("../utils/statsCache.js");
 const { ALL_SEAT_IDS } = require("../utils/seatAllocator.js");
 const { getIO, emitToAdmins } = require("../socket.js");
 const {
@@ -347,6 +348,9 @@ const resetSeatAllocations = async (req, res) => {
         }),
       ]);
 
+      // Invalidate cache since event reset
+      statsCache.invalidate("stats_");
+
       emitToAdmins("stats:updated", {
         total,
         checkedIn,
@@ -631,6 +635,9 @@ const resetEventProgress = async (req, res) => {
           state: "CANTEEN_TOKEN_ISSUED",
         }),
       ]);
+
+      // Invalidate cache since event session reset
+      statsCache.invalidate("stats_");
 
       emitToAdmins("stats:updated", {
         total,

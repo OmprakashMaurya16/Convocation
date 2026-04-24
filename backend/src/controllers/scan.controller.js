@@ -2,6 +2,7 @@ const Student = require("../models/student.model.js");
 const ScanLog = require("../models/scanLog.model.js");
 const { getIO, emitToAdmins, emitToStudent } = require("../socket.js");
 const { findNextAvailableSeat } = require("../utils/seatAllocator.js");
+const statsCache = require("../utils/statsCache.js");
 const {
   getActiveEventStartAt,
   buildActiveEventStudentFilter,
@@ -227,51 +228,55 @@ const scanQR = async (req, res) => {
       }
 
       if (valid) {
-        const [total, checkedIn, gownIssued, completed, canteenTokenIssued] =
-          await Promise.all([
-            Student.countDocuments(activeFilter),
-            Student.countDocuments({
-              ...activeFilter,
-              state: {
-                $in: [
-                  "SEAT_ALLOCATED",
-                  "GOWN_ISSUED",
-                  "COMPLETED",
-                  "CANTEEN_TOKEN_ISSUED",
-                ],
-              },
-            }),
-            Student.countDocuments({
-              ...activeFilter,
-              state: {
-                $in: ["GOWN_ISSUED", "COMPLETED", "CANTEEN_TOKEN_ISSUED"],
-              },
-            }),
-            Student.countDocuments({
-              ...activeFilter,
-              state: { $in: ["COMPLETED", "CANTEEN_TOKEN_ISSUED"] },
-            }),
-            Student.countDocuments({
-              ...activeFilter,
-              state: "CANTEEN_TOKEN_ISSUED",
-            }),
-          ]);
+        // Check cache first (5s TTL for performance)
+        const cacheKey = `stats_${activeSince}`;
+        let cachedStats = statsCache.get(cacheKey);
 
-        console.log("[scanQR] Emitting stats:updated -", {
-          total,
-          checkedIn,
-          gownIssued,
-          completed,
-          canteenTokenIssued,
-        });
+        if (!cachedStats) {
+          // Only query DB if cache miss
+          const [total, checkedIn, gownIssued, completed, canteenTokenIssued] =
+            await Promise.all([
+              Student.countDocuments(activeFilter),
+              Student.countDocuments({
+                ...activeFilter,
+                state: {
+                  $in: [
+                    "SEAT_ALLOCATED",
+                    "GOWN_ISSUED",
+                    "COMPLETED",
+                    "CANTEEN_TOKEN_ISSUED",
+                  ],
+                },
+              }),
+              Student.countDocuments({
+                ...activeFilter,
+                state: {
+                  $in: ["GOWN_ISSUED", "COMPLETED", "CANTEEN_TOKEN_ISSUED"],
+                },
+              }),
+              Student.countDocuments({
+                ...activeFilter,
+                state: { $in: ["COMPLETED", "CANTEEN_TOKEN_ISSUED"] },
+              }),
+              Student.countDocuments({
+                ...activeFilter,
+                state: "CANTEEN_TOKEN_ISSUED",
+              }),
+            ]);
 
-        emitToAdmins("stats:updated", {
-          total,
-          checkedIn,
-          gownIssued,
-          completed,
-          canteenTokenIssued,
-        });
+          cachedStats = {
+            total,
+            checkedIn,
+            gownIssued,
+            completed,
+            canteenTokenIssued,
+          };
+          statsCache.set(cacheKey, cachedStats);
+        }
+
+        console.log("[scanQR] Emitting stats:updated -", cachedStats);
+
+        emitToAdmins("stats:updated", cachedStats);
 
         // Department chart depends on "present" counts, so refresh it on any valid scan.
         console.log("[scanQR] Emitting department-stats:refresh for student:", {
