@@ -1,7 +1,10 @@
 const Student = require("../models/student.model.js");
 const ScanLog = require("../models/scanLog.model.js");
 const { getIO, emitToAdmins, emitToStudent } = require("../socket.js");
-const { findNextAvailableSeat } = require("../utils/seatAllocator.js");
+const {
+  findNextAvailableSeat,
+  invalidateSeatAllocatorCache,
+} = require("../utils/seatAllocator.js");
 const statsCache = require("../utils/statsCache.js");
 const {
   getActiveEventStartAt,
@@ -22,6 +25,51 @@ const EXPECTED_STATE_FOR_SCAN = {
   GOWN: "SEAT_ALLOCATED",
   RETURN: "GOWN_ISSUED",
   CANTEEN: "COMPLETED",
+};
+
+const isDuplicateSeatError = (error) => {
+  if (!error) return false;
+  if (error.code === 11000) return true;
+  const message = String(error.message || "");
+  return (
+    message.toLowerCase().includes("duplicate key") && message.includes("seat")
+  );
+};
+
+const saveSeatAllocationWithRetry = async ({
+  student,
+  department,
+  maxAttempts = 3,
+}) => {
+  let attempt = 0;
+  while (attempt < maxAttempts) {
+    try {
+      await student.save();
+      return { ok: true };
+    } catch (error) {
+      if (!isDuplicateSeatError(error)) throw error;
+
+      attempt += 1;
+      await invalidateSeatAllocatorCache();
+      const nextSeat = await findNextAvailableSeat(department, {
+        forceRefresh: true,
+      });
+
+      if (!nextSeat) {
+        return {
+          ok: false,
+          message: "Seat allocation conflict; no more seats available.",
+        };
+      }
+
+      student.seat = nextSeat;
+    }
+  }
+
+  return {
+    ok: false,
+    message: "Seat allocation conflict; please retry scan.",
+  };
 };
 
 const scanQR = async (req, res) => {
@@ -133,7 +181,26 @@ const scanQR = async (req, res) => {
         : "Invalid stage transition";
     }
 
-    if (valid) await student.save();
+    if (valid) {
+      if (normalizedScanType === "ENTRY") {
+        const saveResult = await saveSeatAllocationWithRetry({
+          student,
+          department: student.department,
+        });
+
+        if (!saveResult.ok) {
+          valid = false;
+          message = saveResult.message || "Failed to allocate seat";
+        } else {
+          const seat = student.seat;
+          if (seat?.section && seat?.number) {
+            message = `Checked-in & seat assigned: ${seat.section}${seat.number}`;
+          }
+        }
+      } else {
+        await student.save();
+      }
+    }
 
     const scanLog = await ScanLog.create({
       studentId: student._id,

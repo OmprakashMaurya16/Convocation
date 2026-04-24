@@ -235,35 +235,47 @@ const getDepartmentStats = async (req, res) => {
   try {
     const activeSince = await getActiveEventStartAt();
     const activeFilter = buildActiveEventStudentFilter(activeSince);
-    // Get all students grouped by department
-    const allStudents =
-      await Student.find(activeFilter).select("department state");
-    console.log(`[getDepartmentStats] Total students: ${allStudents.length}`);
-    allStudents.forEach((s) => {
-      console.log(`  Student: ${s.department || "NO_DEPT"} - ${s.state}`);
-    });
 
-    // Define departments in order
+    const cacheKey = `deptstats_${new Date(activeSince || 0).toISOString()}`;
+    const cached = statsCache.get(cacheKey);
+    if (cached) {
+      return res.json(cached);
+    }
+
+    // Define departments in order (UI expects these).
     const departments = ["INFT", "CMPN", "EXTC", "EXCS", "BIOMD", "MMS"];
 
-    // Calculate stats for each department
+    const rows = await Student.aggregate([
+      { $match: activeFilter },
+      {
+        $group: {
+          _id: { dept: { $ifNull: ["$department", ""] } },
+          totalExpected: { $sum: 1 },
+          presentCount: {
+            $sum: {
+              $cond: [{ $ne: ["$state", "REGISTERED"] }, 1, 0],
+            },
+          },
+        },
+      },
+    ]);
+
+    const statsByDept = new Map();
+    for (const row of rows) {
+      const name = String(row?._id?.dept || "").toUpperCase();
+      statsByDept.set(name, {
+        totalExpected: Number(row?.totalExpected || 0),
+        presentCount: Number(row?.presentCount || 0),
+      });
+    }
+
     const deptStats = departments.map((dept) => {
-      const deptStudents = allStudents.filter((s) => s.department === dept);
-      const totalExpected = deptStudents.length;
-
-      // Mark as PRESENT if student:
-      // 1. Checked-in (CHECKED_IN state)
-      // 2. Seat allocated (SEAT_ALLOCATED state)
-      // 3. Issued the gown (GOWN_ISSUED state)
-      // 4. Completed the event (COMPLETED state)
-      // NOT present if still in REGISTERED state
-      const presentCount = deptStudents.filter(
-        (s) => s.state !== "REGISTERED",
-      ).length;
-
-      console.log(
-        `[getDepartmentStats] ${dept}: ${presentCount}/${totalExpected} present`,
-      );
+      const stat = statsByDept.get(dept) || {
+        totalExpected: 0,
+        presentCount: 0,
+      };
+      const totalExpected = stat.totalExpected;
+      const presentCount = stat.presentCount;
 
       return {
         name: dept,
@@ -277,8 +289,8 @@ const getDepartmentStats = async (req, res) => {
       };
     });
 
-    console.log(`[getDepartmentStats] Response:`, deptStats);
-    res.json(deptStats);
+    statsCache.set(cacheKey, deptStats);
+    return res.json(deptStats);
   } catch (error) {
     console.error("[getDepartmentStats] Error:", error.message);
     res.status(500).json({ message: "Server error" });
@@ -350,6 +362,7 @@ const resetSeatAllocations = async (req, res) => {
 
       // Invalidate cache since event reset
       statsCache.invalidate("stats_");
+      statsCache.invalidate("deptstats_");
 
       emitToAdmins("stats:updated", {
         total,
@@ -638,6 +651,7 @@ const resetEventProgress = async (req, res) => {
 
       // Invalidate cache since event session reset
       statsCache.invalidate("stats_");
+      statsCache.invalidate("deptstats_");
 
       emitToAdmins("stats:updated", {
         total,
