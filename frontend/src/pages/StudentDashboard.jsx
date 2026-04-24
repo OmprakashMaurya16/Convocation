@@ -129,19 +129,11 @@ export default function StudentDashboard() {
 
   const stages = STAGE_ORDER.map((stage) => {
     const stageIndex = STAGE_ORDER.indexOf(stage);
-    // Force Seat Allocated to be active if at or past that stage
-    let active = stageIndex === safeCurrentStateIndex;
-    if (
-      stage === "SEAT_ALLOCATED" &&
-      safeCurrentStateIndex >= STAGE_ORDER.indexOf("SEAT_ALLOCATED")
-    ) {
-      active = true;
-    }
     return {
       label: STAGE_METADATA[stage].label,
       icon: STAGE_METADATA[stage].icon,
       completed: stageIndex < safeCurrentStateIndex,
-      active,
+      active: stageIndex === safeCurrentStateIndex,
     };
   });
 
@@ -246,16 +238,11 @@ export default function StudentDashboard() {
             {/* Progress Line Background */}
             <div className="absolute top-3 left-0 w-full h-1 bg-outline-variant/30 rounded-full"></div>
 
-            {/* Progress Line Active (reaches at least Seat Allocated) */}
+            {/* Progress Line Active */}
             <div
               className="absolute top-3 left-0 h-1 rounded-full"
               style={{
-                width: `${Math.max(
-                  (safeCurrentStateIndex / (STAGE_ORDER.length - 1)) * 100,
-                  (STAGE_ORDER.indexOf("SEAT_ALLOCATED") /
-                    (STAGE_ORDER.length - 1)) *
-                    100,
-                )}%`,
+                width: `${(safeCurrentStateIndex / (STAGE_ORDER.length - 1)) * 100}%`,
                 background: "linear-gradient(135deg, #002547 0%, #1b3b5f 100%)",
               }}
             ></div>
