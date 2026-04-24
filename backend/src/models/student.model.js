@@ -32,7 +32,7 @@ const studentSchema = new mongoose.Schema(
       enum: [
         "REGISTERED",
         "CHECKED_IN",
-        "SEATED",
+        "SEAT_ALLOCATED",
         "GOWN_ISSUED",
         "COMPLETED",
         "CANTEEN_TOKEN_ISSUED",

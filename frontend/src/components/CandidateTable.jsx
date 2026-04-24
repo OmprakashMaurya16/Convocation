@@ -1,7 +1,7 @@
 const STAGE_STYLE = {
   REGISTERED: "bg-slate-100 text-slate-700 border-slate-200",
   CHECKED_IN: "bg-blue-50 text-blue-700 border-blue-100",
-  SEATED: "bg-green-50 text-green-700 border-green-100",
+  SEAT_ALLOCATED: "bg-green-50 text-green-700 border-green-100",
   GOWN_ISSUED: "bg-amber-50 text-amber-700 border-amber-100",
   COMPLETED: "bg-emerald-50 text-emerald-700 border-emerald-100",
   CANTEEN_TOKEN_ISSUED: "bg-slate-50 text-slate-700 border-slate-200",
@@ -10,7 +10,7 @@ const STAGE_STYLE = {
 const STAGE_LABEL = {
   REGISTERED: "REGISTERED",
   CHECKED_IN: "CHECKED-IN",
-  SEATED: "SEATED",
+  SEAT_ALLOCATED: "SEAT ALLOCATED",
   GOWN_ISSUED: "ROBE ISSUED",
   COMPLETED: "ROBE RETURN",
   CANTEEN_TOKEN_ISSUED: "CANTEEN TOKEN",

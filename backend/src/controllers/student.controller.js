@@ -198,7 +198,6 @@ const eventLogin = async (req, res) => {
       student.canteenToken = { ...(student.canteenToken || {}), issued: false };
       student.timestamps = student.timestamps || {};
       student.timestamps.checkedInAt = undefined;
-      student.timestamps.seatedAt = undefined;
       student.timestamps.gownIssuedAt = undefined;
       student.timestamps.returnedAt = undefined;
       student.timestamps.canteenTokenIssuedAt = undefined;
@@ -236,7 +235,7 @@ const eventLogin = async (req, res) => {
     const [
       total,
       checkedIn,
-      seated,
+      seatAllocated,
       gownIssued,
       completed,
       canteenTokenIssued,
@@ -247,7 +246,7 @@ const eventLogin = async (req, res) => {
         state: {
           $in: [
             "CHECKED_IN",
-            "SEATED",
+            "SEAT_ALLOCATED",
             "GOWN_ISSUED",
             "COMPLETED",
             "CANTEEN_TOKEN_ISSUED",
@@ -257,7 +256,7 @@ const eventLogin = async (req, res) => {
       Student.countDocuments({
         ...activeFilter,
         state: {
-          $in: ["SEATED", "GOWN_ISSUED", "COMPLETED", "CANTEEN_TOKEN_ISSUED"],
+          $in: ["SEAT_ALLOCATED", "GOWN_ISSUED", "COMPLETED", "CANTEEN_TOKEN_ISSUED"],
         },
       }),
       Student.countDocuments({
@@ -279,7 +278,7 @@ const eventLogin = async (req, res) => {
     emitToAdmins("stats:updated", {
       total,
       checkedIn,
-      seated,
+      seatAllocated,
       gownIssued,
       completed,
       canteenTokenIssued,

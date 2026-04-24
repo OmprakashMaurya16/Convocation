@@ -2,7 +2,7 @@ const STAGE_OPTIONS = [
   { label: "All Stages", value: "ALL" },
   { label: "Registered", value: "REGISTERED" },
   { label: "Checked-In", value: "CHECKED_IN" },
-  { label: "Seated", value: "SEATED" },
+  { label: "Seat Allocated", value: "SEAT_ALLOCATED" },
   { label: "Robe Issued", value: "GOWN_ISSUED" },
   { label: "Robe Return", value: "COMPLETED" },
   { label: "Canteen Token Issued", value: "CANTEEN_TOKEN_ISSUED" },

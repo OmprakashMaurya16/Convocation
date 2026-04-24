@@ -6,7 +6,6 @@ export default function ScannerBottomNav({
 }) {
   const modes = [
     { id: "entry", label: "Entry", icon: "login" },
-    { id: "seating", label: "Seating", icon: "chair" },
     { id: "gown", label: "Robe", icon: "checkroom" },
     { id: "return", label: "Return", icon: "assignment_return" },
     { id: "canteen", label: "Canteen", icon: "restaurant" },

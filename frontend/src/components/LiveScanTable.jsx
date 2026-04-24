@@ -1,6 +1,6 @@
 const STAGE_LABELS = {
   ENTRY: "Checked-In",
-  SEATING: "Seated",
+  SEAT_ALLOCATED: "Seat Allocated",
   GOWN: "Robe Issued",
   RETURN: "Robe Return",
   CANTEEN: "Canteen Token",
@@ -21,7 +21,7 @@ export default function LiveScanTable({ scanData = [] }) {
         return "bg-surface-container-high text-on-secondary-container";
       case "Checked-In":
         return "bg-surface-container-highest text-on-surface-variant";
-      case "Seated":
+      case "Seat Allocated":
         return "bg-surface-tint/20 text-on-primary-fixed-variant";
       case "Robe Return":
         return "bg-tertiary-container text-on-tertiary-container";

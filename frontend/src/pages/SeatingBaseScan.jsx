@@ -21,7 +21,7 @@ export default function SeatingBaseScan() {
       <ScannerFrame>
         <ScanResultCard
           show={showResult}
-          status="SEATED"
+          status="SEAT_ALLOCATED"
           statusColor="bg-emerald-500"
           time="14:15:33"
           student="Priya Sharma"

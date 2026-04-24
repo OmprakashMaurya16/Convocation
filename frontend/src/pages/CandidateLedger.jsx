@@ -133,7 +133,7 @@ export default function CandidateLedger({
   const totalRegistered = stats?.total || 0;
   const checkedIn = stats?.checkedIn || 0;
   const gownsIssued = stats?.gownIssued || 0;
-  const seated = stats?.seated || 0;
+  const seatAllocated = stats?.seatAllocated || 0;
   const gownIssuedPercent = totalRegistered
     ? `${Math.round((gownsIssued / totalRegistered) * 100)}%`
     : "0%";
@@ -232,8 +232,8 @@ export default function CandidateLedger({
           <CandidateStatsCard
             icon="event_seat"
             iconBg="bg-emerald-50 text-emerald-600"
-            label="Seated Assigned"
-            value={seated.toLocaleString()}
+            label="Seat Allocated"
+            value={seatAllocated.toLocaleString()}
           />
         </div>
 

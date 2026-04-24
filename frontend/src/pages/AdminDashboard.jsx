@@ -102,8 +102,7 @@ export default function AdminDashboard() {
       socket.emit("admin:subscribe");
     });
 
-    socket.on("admin:subscribed", (data) => {
-    });
+    socket.on("admin:subscribed", (data) => {});
 
     socket.on("scan:created", (scan) => {
       setLiveScans((previous) => [scan, ...previous].slice(0, 20));
@@ -121,8 +120,7 @@ export default function AdminDashboard() {
       console.error("Socket connection error:", error);
     });
 
-    socket.on("disconnect", (reason) => {
-    });
+    socket.on("disconnect", (reason) => {});
 
     return () => {
       socket.disconnect();
@@ -150,9 +148,9 @@ export default function AdminDashboard() {
       color: "secondary",
     },
     {
-      title: "Seated",
-      value: (stats?.seated || 0).toLocaleString(),
-      percentage: toPercent(stats?.seated || 0),
+      title: "Seat Allocated",
+      value: (stats?.seatAllocated || 0).toLocaleString(),
+      percentage: toPercent(stats?.seatAllocated || 0),
       color: "surface-tint",
     },
     {

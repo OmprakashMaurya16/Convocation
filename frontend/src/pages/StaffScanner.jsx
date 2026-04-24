@@ -14,10 +14,6 @@ const SCANNER_MODES = {
     counter: "Entry Gate",
     scanType: "ENTRY",
   },
-  seating: {
-    counter: "Seating Station",
-    scanType: "SEATING",
-  },
   gown: {
     counter: "Robe Counter",
     scanType: "GOWN",
@@ -35,8 +31,7 @@ const SCANNER_MODES = {
 const STATE_TO_NEXT_PHASE = {
   REGISTERED: { label: "Entry Scan", icon: "login" },
   CHECKED_IN: { label: "Robe Counter", icon: "checkroom" },
-  GOWN_ISSUED: { label: "Seating Scan", icon: "chair" },
-  SEATED: { label: "Return Counter", icon: "assignment_return" },
+  GOWN_ISSUED: { label: "Return Counter", icon: "assignment_return" },
   COMPLETED: { label: "Canteen Token", icon: "restaurant" },
   CANTEEN_TOKEN_ISSUED: { label: "Done", icon: "check_circle" },
 };
@@ -44,7 +39,6 @@ const STATE_TO_NEXT_PHASE = {
 const STATE_LABEL = {
   REGISTERED: "REGISTERED",
   CHECKED_IN: "CHECKED IN",
-  SEATED: "SEATED",
   GOWN_ISSUED: "ROBE ISSUED",
   COMPLETED: "ROBE RETURN",
   CANTEEN_TOKEN_ISSUED: "CANTEEN TOKEN ISSUED",
@@ -52,7 +46,7 @@ const STATE_LABEL = {
 
 /**
  * Returns a human-friendly message for the scanner result card.
- * @param {string} scanType  - ENTRY | SEATING | GOWN | RETURN | CANTEEN
+ * @param {string} scanType  - ENTRY | GOWN | RETURN | CANTEEN
  * @param {boolean} success  - whether the scan was accepted
  * @param {string|null} seat - formatted seat label, e.g. "A-12"
  */
@@ -64,10 +58,8 @@ const getDynamicMessage = (scanType, success, seat) => {
   switch (scanType) {
     case "ENTRY":
       return `Checked-in successful. Your ${seatText} has been assigned. Please proceed to the Robe Counter.`;
-    case "SEATING":
-      return `Seating verified. Please take ${seatText} and remain seated for the ceremony.`;
     case "GOWN":
-      return `Your robe has been issued successfully. Please proceed to the auditorium entry for seating verification.`;
+      return `Your robe has been issued successfully. Please proceed to the return counter.`;
     case "RETURN":
       return "Your gown has been successfully returned. You may now proceed to the food counter.";
     case "CANTEEN":
@@ -82,7 +74,7 @@ export default function StaffScanner() {
   const auth = useMemo(() => getAuthSession(), []);
   const initialMode =
     auth?.role && auth.role !== "ADMIN"
-      ? auth.role.toLowerCase() // ENTRY→entry, SEATING→seating, GOWN→gown, RETURN→return, CANTEEN→canteen
+      ? auth.role.toLowerCase() // ENTRY→entry, GOWN→gown, RETURN→return, CANTEEN→canteen
       : "entry";
   const [activeMode, setActiveMode] = useState(
     SCANNER_MODES[initialMode] ? initialMode : "entry",

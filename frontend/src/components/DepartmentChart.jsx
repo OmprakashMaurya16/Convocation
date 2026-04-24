@@ -30,6 +30,10 @@ export default function DepartmentChart({ token, refreshKey = 0 }) {
         front: "bg-error",
         side: "bg-error",
       },
+      MMS: {
+        front: "bg-outline",
+        side: "bg-outline",
+      },
     };
 
     return (
@@ -112,7 +116,7 @@ export default function DepartmentChart({ token, refreshKey = 0 }) {
         </div>
       </div>
 
-      <div className="relative h-40 xs:h-48 sm:h-56 lg:h-64 bg-surface-container rounded-lg overflow-x-auto">
+      <div className="relative h-40 xs:h-48 sm:h-56 lg:h-64 bg-surface-container rounded-lg overflow-hidden">
         <div className="flex h-full">
           {/* Y-axis labels */}
           <div className="flex flex-col justify-between py-3 pl-2 pr-1 xs:pl-3 xs:pr-2 text-[9px] xs:text-[10px] font-bold text-on-surface-variant select-none">
@@ -134,7 +138,7 @@ export default function DepartmentChart({ token, refreshKey = 0 }) {
               <div className="h-px bg-outline-variant" />
             </div>
 
-            <div className="relative z-10 flex items-end justify-between h-full gap-4 xs:gap-6 md:gap-8 lg:gap-10">
+            <div className="relative z-10 flex items-end justify-between h-full gap-2 xs:gap-3 md:gap-4">
               {departments.map((dept) => {
                 const presentRaw = Number.parseFloat(dept?.present);
                 const presentPct = Number.isFinite(presentRaw)

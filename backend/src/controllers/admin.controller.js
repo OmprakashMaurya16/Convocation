@@ -15,7 +15,6 @@ const {
 
 const SCAN_TYPE_LOCATION = {
   ENTRY: "Entry Gate",
-  SEATING: "Seating Station",
   GOWN: "Robe Counter",
   RETURN: "Return Counter",
   CANTEEN: "Canteen Token Desk",
@@ -30,23 +29,28 @@ const getStats = async (req, res) => {
     const total = await Student.countDocuments(activeFilter);
 
     // Cumulative stage counters (monotonic): once a candidate progresses,
-    // they are still considered checked-in / seated for ops reporting.
+    // they are still considered checked-in for ops reporting.
     const checkedIn = await Student.countDocuments({
       ...activeFilter,
       state: {
         $in: [
           "CHECKED_IN",
-          "SEATED",
+          "SEAT_ALLOCATED",
           "GOWN_ISSUED",
           "COMPLETED",
           "CANTEEN_TOKEN_ISSUED",
         ],
       },
     });
-    const seated = await Student.countDocuments({
+    const seatAllocated = await Student.countDocuments({
       ...activeFilter,
       state: {
-        $in: ["SEATED", "GOWN_ISSUED", "COMPLETED", "CANTEEN_TOKEN_ISSUED"],
+        $in: [
+          "SEAT_ALLOCATED",
+          "GOWN_ISSUED",
+          "COMPLETED",
+          "CANTEEN_TOKEN_ISSUED",
+        ],
       },
     });
     const gownIssued = await Student.countDocuments({
@@ -65,7 +69,7 @@ const getStats = async (req, res) => {
     res.json({
       total,
       checkedIn,
-      seated,
+      seatAllocated,
       gownIssued,
       completed,
       canteenTokenIssued,
@@ -239,7 +243,7 @@ const getDepartmentStats = async (req, res) => {
     });
 
     // Define departments in order
-    const departments = ["INFT", "CMPN", "EXTC", "EXCS", "BIOMD"];
+    const departments = ["INFT", "CMPN", "EXTC", "EXCS", "BIOMD", "MMS"];
 
     // Calculate stats for each department
     const deptStats = departments.map((dept) => {
@@ -248,7 +252,7 @@ const getDepartmentStats = async (req, res) => {
 
       // Mark as PRESENT if student:
       // 1. Checked-in (CHECKED_IN state)
-      // 2. Seated (SEATED state)
+      // 2. Seat allocated (SEAT_ALLOCATED state)
       // 3. Issued the gown (GOWN_ISSUED state)
       // 4. Completed the event (COMPLETED state)
       // NOT present if still in REGISTERED state
@@ -298,7 +302,7 @@ const resetSeatAllocations = async (req, res) => {
       const [
         total,
         checkedIn,
-        seated,
+        seatAllocated,
         gownIssued,
         completed,
         canteenTokenIssued,
@@ -309,7 +313,7 @@ const resetSeatAllocations = async (req, res) => {
           state: {
             $in: [
               "CHECKED_IN",
-              "SEATED",
+              "SEAT_ALLOCATED",
               "GOWN_ISSUED",
               "COMPLETED",
               "CANTEEN_TOKEN_ISSUED",
@@ -319,7 +323,12 @@ const resetSeatAllocations = async (req, res) => {
         Student.countDocuments({
           ...activeFilter,
           state: {
-            $in: ["SEATED", "GOWN_ISSUED", "COMPLETED", "CANTEEN_TOKEN_ISSUED"],
+            $in: [
+              "SEAT_ALLOCATED",
+              "GOWN_ISSUED",
+              "COMPLETED",
+              "CANTEEN_TOKEN_ISSUED",
+            ],
           },
         }),
         Student.countDocuments({
@@ -341,7 +350,7 @@ const resetSeatAllocations = async (req, res) => {
       emitToAdmins("stats:updated", {
         total,
         checkedIn,
-        seated,
+        seatAllocated,
         gownIssued,
         completed,
         canteenTokenIssued,
@@ -384,7 +393,9 @@ const getSeatOccupancy = async (req, res) => {
       const seatId = `${section}${number}`;
       const state = String(student.state || "").trim();
 
-      if (["SEATED", "COMPLETED", "CANTEEN_TOKEN_ISSUED"].includes(state)) {
+      if (
+        ["SEAT_ALLOCATED", "COMPLETED", "CANTEEN_TOKEN_ISSUED"].includes(state)
+      ) {
         confirmedSeatIds.push(seatId);
       } else {
         pendingSeatIds.push(seatId);
@@ -576,7 +587,7 @@ const resetEventProgress = async (req, res) => {
       const [
         total,
         checkedIn,
-        seated,
+        seatAllocated,
         gownIssued,
         completed,
         canteenTokenIssued,
@@ -587,7 +598,7 @@ const resetEventProgress = async (req, res) => {
           state: {
             $in: [
               "CHECKED_IN",
-              "SEATED",
+              "SEAT_ALLOCATED",
               "GOWN_ISSUED",
               "COMPLETED",
               "CANTEEN_TOKEN_ISSUED",
@@ -597,7 +608,12 @@ const resetEventProgress = async (req, res) => {
         Student.countDocuments({
           ...activeFilter,
           state: {
-            $in: ["SEATED", "GOWN_ISSUED", "COMPLETED", "CANTEEN_TOKEN_ISSUED"],
+            $in: [
+              "SEAT_ALLOCATED",
+              "GOWN_ISSUED",
+              "COMPLETED",
+              "CANTEEN_TOKEN_ISSUED",
+            ],
           },
         }),
         Student.countDocuments({
@@ -619,7 +635,7 @@ const resetEventProgress = async (req, res) => {
       emitToAdmins("stats:updated", {
         total,
         checkedIn,
-        seated,
+        seatAllocated,
         gownIssued,
         completed,
         canteenTokenIssued,
@@ -648,7 +664,7 @@ const getDepartmentConfigs = async (req, res) => {
 const setDepartmentConfig = async (req, res) => {
   try {
     const { department, startSeat, endSeat } = req.body;
-    
+
     if (!department || !startSeat || !endSeat) {
       return res.status(400).json({ message: "Missing required fields" });
     }
@@ -664,15 +680,17 @@ const setDepartmentConfig = async (req, res) => {
       return res.status(400).json({ message: "Invalid seat range" });
     }
 
-    const otherConfigs = await DepartmentConfig.find({ department: { $ne: upperDept } });
+    const otherConfigs = await DepartmentConfig.find({
+      department: { $ne: upperDept },
+    });
     for (const config of otherConfigs) {
       const otherStart = ALL_SEAT_IDS.indexOf(config.startSeat);
       const otherEnd = ALL_SEAT_IDS.indexOf(config.endSeat);
 
       if (otherStart !== -1 && otherEnd !== -1) {
         if (startIndex <= otherEnd && otherStart <= endIndex) {
-          return res.status(400).json({ 
-            message: `Seat range overlaps with department ${config.department} (${config.startSeat} to ${config.endSeat})` 
+          return res.status(400).json({
+            message: `Seat range overlaps with department ${config.department} (${config.startSeat} to ${config.endSeat})`,
           });
         }
       }
@@ -681,7 +699,7 @@ const setDepartmentConfig = async (req, res) => {
     const config = await DepartmentConfig.findOneAndUpdate(
       { department: upperDept },
       { startSeat: upperStart, endSeat: upperEnd },
-      { new: true, upsert: true }
+      { new: true, upsert: true },
     );
 
     res.json({ success: true, config });

@@ -10,8 +10,8 @@ import { createSocketClient } from "../utils/socket";
 const STAGE_ORDER = [
   "REGISTERED",
   "CHECKED_IN",
+  "SEAT_ALLOCATED",
   "GOWN_ISSUED",
-  "SEATED",
   "COMPLETED",
   "CANTEEN_TOKEN_ISSUED",
 ];
@@ -19,8 +19,8 @@ const STAGE_ORDER = [
 const STAGE_METADATA = {
   REGISTERED: { label: "Registered", icon: "check" },
   CHECKED_IN: { label: "Checked-in", icon: "login" },
+  SEAT_ALLOCATED: { label: "Seat Allocated", icon: "event_seat" },
   GOWN_ISSUED: { label: "Robe Issued", icon: "checkroom" },
-  SEATED: { label: "Seated", icon: "chair" },
   COMPLETED: { label: "Robe Return", icon: "assignment_return" },
   CANTEEN_TOKEN_ISSUED: { label: "Canteen Token", icon: "restaurant" },
 };
@@ -40,15 +40,13 @@ const getCurrentAction = (state, seatSection, seatNumber) => {
     case "REGISTERED":
       return "Please proceed to the Entry Gate and present your QR code to the staff for check-in.";
     case "CHECKED_IN":
+      return "You are being checked in. Your seat is being allocated.";
+    case "SEAT_ALLOCATED":
       return seatLabel
-        ? `You are checked in. Your seat is ${seatLabel}. Please proceed to the Robe Counter for gown issuance.`
-        : "You are checked in. Please proceed to the Robe Counter for gown issuance.";
+        ? `Your seat has been allocated: ${seatLabel}. Please proceed to the Robe Counter for gown issuance.`
+        : "Your seat has been allocated. Please proceed to the Robe Counter for gown issuance.";
     case "GOWN_ISSUED":
-      return `Your gown has been issued successfully. Kindly proceed to your designated seat: Seat No. ${seatLabel}.`;
-    case "SEATED":
-      return seatLabel
-        ? `You are now seated at Seat No. ${seatLabel}. Please remain seated and wait for your turn to receive your degree.`
-        : "You are now seated. Please remain seated and wait for your turn to receive your degree.";
+      return "Your gown has been issued successfully. Please proceed to the Return Counter to return it.";
     case "COMPLETED":
       return "Your gown has been successfully returned. You may now proceed to the food counter.";
     case "CANTEEN_TOKEN_ISSUED":
@@ -131,12 +129,19 @@ export default function StudentDashboard() {
 
   const stages = STAGE_ORDER.map((stage) => {
     const stageIndex = STAGE_ORDER.indexOf(stage);
-
+    // Force Seat Allocated to be active if at or past that stage
+    let active = stageIndex === safeCurrentStateIndex;
+    if (
+      stage === "SEAT_ALLOCATED" &&
+      safeCurrentStateIndex >= STAGE_ORDER.indexOf("SEAT_ALLOCATED")
+    ) {
+      active = true;
+    }
     return {
       label: STAGE_METADATA[stage].label,
       icon: STAGE_METADATA[stage].icon,
-      completed: stageIndex < currentStateIndex,
-      active: stageIndex === safeCurrentStateIndex,
+      completed: stageIndex < safeCurrentStateIndex,
+      active,
     };
   });
 
@@ -241,11 +246,16 @@ export default function StudentDashboard() {
             {/* Progress Line Background */}
             <div className="absolute top-3 left-0 w-full h-1 bg-outline-variant/30 rounded-full"></div>
 
-            {/* Progress Line Active (Up to Stage 4) */}
+            {/* Progress Line Active (reaches at least Seat Allocated) */}
             <div
               className="absolute top-3 left-0 h-1 rounded-full"
               style={{
-                width: `${Math.max(0, ((safeCurrentStateIndex + 1) / STAGE_ORDER.length) * 100)}%`,
+                width: `${Math.max(
+                  (safeCurrentStateIndex / (STAGE_ORDER.length - 1)) * 100,
+                  (STAGE_ORDER.indexOf("SEAT_ALLOCATED") /
+                    (STAGE_ORDER.length - 1)) *
+                    100,
+                )}%`,
                 background: "linear-gradient(135deg, #002547 0%, #1b3b5f 100%)",
               }}
             ></div>
@@ -287,6 +297,8 @@ export default function StudentDashboard() {
             </div>
           </div>
         </section>
+
+        {/* Checked-in Status Card */}
 
         {/* Seat Details Card */}
         <section className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">

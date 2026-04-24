@@ -9,19 +9,17 @@ const {
 
 const SCAN_TYPE_LOCATION = {
   ENTRY: "Entry Gate",
-  SEATING: "Seating Station",
   GOWN: "Robe Counter",
   RETURN: "Robe Return Counter",
   CANTEEN: "Canteen Token Desk",
 };
 
-const ALLOWED_SCAN_TYPES = ["ENTRY", "SEATING", "GOWN", "RETURN", "CANTEEN"];
+const ALLOWED_SCAN_TYPES = ["ENTRY", "GOWN", "RETURN", "CANTEEN"];
 
 const EXPECTED_STATE_FOR_SCAN = {
   ENTRY: "REGISTERED",
-  GOWN: "CHECKED_IN",
-  SEATING: "GOWN_ISSUED",
-  RETURN: "SEATED",
+  GOWN: "SEAT_ALLOCATED",
+  RETURN: "GOWN_ISSUED",
   CANTEEN: "COMPLETED",
 };
 
@@ -93,7 +91,7 @@ const scanQR = async (req, res) => {
         valid = false;
       } else {
         student.seat = seat;
-        student.state = "CHECKED_IN";
+        student.state = "SEAT_ALLOCATED";
         if (!student.timestamps) student.timestamps = {};
         student.timestamps.checkedInAt = now;
         valid = true;
@@ -101,7 +99,7 @@ const scanQR = async (req, res) => {
       }
     } else if (
       normalizedScanType === "GOWN" &&
-      student.state === "CHECKED_IN"
+      student.state === "SEAT_ALLOCATED"
     ) {
       // Robe counter: issue gown.
       student.state = "GOWN_ISSUED";
@@ -110,15 +108,9 @@ const scanQR = async (req, res) => {
       valid = true;
       message = "Robe issued successfully";
     } else if (
-      normalizedScanType === "SEATING" &&
+      normalizedScanType === "RETURN" &&
       student.state === "GOWN_ISSUED"
     ) {
-      // Auditorium entry/seating verification: mark as seated.
-      student.state = "SEATED";
-      student.set("timestamps.seatedAt", new Date());
-      valid = true;
-      message = "Student seated successfully";
-    } else if (normalizedScanType === "RETURN" && student.state === "SEATED") {
       student.state = "COMPLETED";
       student.set("gown.returned", true);
       student.set("timestamps.returnedAt", new Date());
@@ -213,8 +205,8 @@ const scanQR = async (req, res) => {
         });
       }
 
-      // When seating is confirmed, flip the seat to occupied (green).
-      if (valid && normalizedScanType === "SEATING") {
+      // When seating is confirmed (ENTRY scan), flip the seat to occupied (green).
+      if (valid && normalizedScanType === "ENTRY") {
         const confirmedSeatId =
           student.seat?.section && student.seat?.number
             ? `${student.seat.section}${student.seat.number}`
@@ -235,58 +227,39 @@ const scanQR = async (req, res) => {
       }
 
       if (valid) {
-        const [
-          total,
-          checkedIn,
-          seated,
-          gownIssued,
-          completed,
-          canteenTokenIssued,
-        ] = await Promise.all([
-          Student.countDocuments(activeFilter),
-          Student.countDocuments({
-            ...activeFilter,
-            state: {
-              $in: [
-                "CHECKED_IN",
-                "SEATED",
-                "GOWN_ISSUED",
-                "COMPLETED",
-                "CANTEEN_TOKEN_ISSUED",
-              ],
-            },
-          }),
-          Student.countDocuments({
-            ...activeFilter,
-            state: {
-              $in: [
-                "SEATED",
-                "GOWN_ISSUED",
-                "COMPLETED",
-                "CANTEEN_TOKEN_ISSUED",
-              ],
-            },
-          }),
-          Student.countDocuments({
-            ...activeFilter,
-            state: {
-              $in: ["GOWN_ISSUED", "COMPLETED", "CANTEEN_TOKEN_ISSUED"],
-            },
-          }),
-          Student.countDocuments({
-            ...activeFilter,
-            state: { $in: ["COMPLETED", "CANTEEN_TOKEN_ISSUED"] },
-          }),
-          Student.countDocuments({
-            ...activeFilter,
-            state: "CANTEEN_TOKEN_ISSUED",
-          }),
-        ]);
+        const [total, checkedIn, gownIssued, completed, canteenTokenIssued] =
+          await Promise.all([
+            Student.countDocuments(activeFilter),
+            Student.countDocuments({
+              ...activeFilter,
+              state: {
+                $in: [
+                  "SEAT_ALLOCATED",
+                  "GOWN_ISSUED",
+                  "COMPLETED",
+                  "CANTEEN_TOKEN_ISSUED",
+                ],
+              },
+            }),
+            Student.countDocuments({
+              ...activeFilter,
+              state: {
+                $in: ["GOWN_ISSUED", "COMPLETED", "CANTEEN_TOKEN_ISSUED"],
+              },
+            }),
+            Student.countDocuments({
+              ...activeFilter,
+              state: { $in: ["COMPLETED", "CANTEEN_TOKEN_ISSUED"] },
+            }),
+            Student.countDocuments({
+              ...activeFilter,
+              state: "CANTEEN_TOKEN_ISSUED",
+            }),
+          ]);
 
         console.log("[scanQR] Emitting stats:updated -", {
           total,
           checkedIn,
-          seated,
           gownIssued,
           completed,
           canteenTokenIssued,
@@ -295,7 +268,6 @@ const scanQR = async (req, res) => {
         emitToAdmins("stats:updated", {
           total,
           checkedIn,
-          seated,
           gownIssued,
           completed,
           canteenTokenIssued,
@@ -324,7 +296,9 @@ const scanQR = async (req, res) => {
     });
   } catch (error) {
     console.error("Scan Error:", error);
-    res.status(500).json({ success: false, message: error.message || "Server error" });
+    res
+      .status(500)
+      .json({ success: false, message: error.message || "Server error" });
   }
 };
 

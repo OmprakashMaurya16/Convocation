@@ -8,7 +8,7 @@ const router = express.Router();
 router.post(
   "/",
   protect,
-  allowRoles("ENTRY", "SEATING", "GOWN", "RETURN", "CANTEEN", "ADMIN"),
+  allowRoles("ENTRY", "GOWN", "RETURN", "CANTEEN", "ADMIN"),
   scanQR,
 );
 

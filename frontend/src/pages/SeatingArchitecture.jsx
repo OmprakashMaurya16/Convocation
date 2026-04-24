@@ -382,9 +382,7 @@ export default function SeatingArchitecture({
                 <span className="material-symbols-outlined text-xs md:text-base">
                   settings
                 </span>
-                <span className="whitespace-nowrap">
-                  Configure Seats
-                </span>
+                <span className="whitespace-nowrap">Configure Seats</span>
               </button>
 
               <button
@@ -438,8 +436,10 @@ export default function SeatingArchitecture({
             color="primary"
           />
           <StatsCard
-            label="Seated"
-            value={stats?.seated ? stats.seated.toLocaleString() : "—"}
+            label="Seat Allocated"
+            value={
+              stats?.seatAllocated ? stats.seatAllocated.toLocaleString() : "—"
+            }
             color="emerald"
           />
           <StatsCard
@@ -449,7 +449,7 @@ export default function SeatingArchitecture({
           />
           <StatsCard
             label="Occupancy"
-            value={`${(((stats?.seated || 0) / HALL_CAPACITY) * 100 || 0).toFixed(1)}%`}
+            value={`${(((stats?.seatAllocated || 0) / HALL_CAPACITY) * 100 || 0).toFixed(1)}%`}
             color="primary"
           />
         </div>
@@ -477,9 +477,9 @@ export default function SeatingArchitecture({
         </span>
       </button>
 
-      <DepartmentSeatingConfig 
-        open={configOpen} 
-        onClose={() => setConfigOpen(false)} 
+      <DepartmentSeatingConfig
+        open={configOpen}
+        onClose={() => setConfigOpen(false)}
       />
     </div>
   );

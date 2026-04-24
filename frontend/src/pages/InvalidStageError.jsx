@@ -13,8 +13,9 @@ const ERROR_STATES = {
     icon: "close",
   },
   missingSeating: {
-    title: "NOT SEATED",
-    message: "Student must be seated before proceeding to robe issuance.",
+    title: "SEAT NOT ALLOCATED",
+    message:
+      "Student must have a seat allocated before proceeding to robe issuance.",
     protocol:
       "Please direct the student to the Seating Hall to complete seating assignment. Return here once seating is confirmed.",
     icon: "event_seat",

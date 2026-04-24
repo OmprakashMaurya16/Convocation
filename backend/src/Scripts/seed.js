@@ -42,12 +42,6 @@ const seedDatabase = async () => {
         role: "ENTRY",
       },
       {
-        name: "Seating Staff",
-        email: "seating@convocation.com",
-        password: "Seating@Vit",
-        role: "SEATING",
-      },
-      {
         name: "Gown Staff",
         email: "gown@convocation.com",
         password: "Gown@Vit",
@@ -440,6 +434,78 @@ const seedDatabase = async () => {
         qrToken: generateQRToken("23105A0007"),
         state: "REGISTERED",
       },
+
+      // MMS (7)
+      {
+        name: "Priya Sharma",
+        studentId: "23106A0001",
+        department: "MMS",
+        phone: "9000000048",
+        email: "",
+        company: "",
+        qrToken: generateQRToken("23106A0001"),
+        state: "REGISTERED",
+      },
+      {
+        name: "Ravi Verma",
+        studentId: "23106A0002",
+        department: "MMS",
+        phone: "9000000049",
+        email: "",
+        company: "",
+        qrToken: generateQRToken("23106A0002"),
+        state: "REGISTERED",
+      },
+      {
+        name: "Neha Gupta",
+        studentId: "23106A0003",
+        department: "MMS",
+        phone: "9000000050",
+        email: "",
+        company: "",
+        qrToken: generateQRToken("23106A0003"),
+        state: "REGISTERED",
+      },
+      {
+        name: "Akshay Singh",
+        studentId: "23106A0004",
+        department: "MMS",
+        phone: "9000000051",
+        email: "",
+        company: "",
+        qrToken: generateQRToken("23106A0004"),
+        state: "REGISTERED",
+      },
+      {
+        name: "Anjali Desai",
+        studentId: "23106A0005",
+        department: "MMS",
+        phone: "9000000052",
+        email: "",
+        company: "",
+        qrToken: generateQRToken("23106A0005"),
+        state: "REGISTERED",
+      },
+      {
+        name: "Vikram Reddy",
+        studentId: "23106A0006",
+        department: "MMS",
+        phone: "9000000053",
+        email: "",
+        company: "",
+        qrToken: generateQRToken("23106A0006"),
+        state: "REGISTERED",
+      },
+      {
+        name: "Shalini Patel",
+        studentId: "23106A0007",
+        department: "MMS",
+        phone: "9000000054",
+        email: "",
+        company: "",
+        qrToken: generateQRToken("23106A0007"),
+        state: "REGISTERED",
+      },
     ];
 
     for (const studentData of students) {
@@ -452,9 +518,7 @@ const seedDatabase = async () => {
 
     console.log("\n========== SEED SUMMARY ==========");
     console.log("✓ 1 Admin account created");
-    console.log(
-      "✓ 5 Staff accounts created (ENTRY, SEATING, GOWN, RETURN, CANTEEN)",
-    );
+    console.log("✓ 4 Staff accounts created (ENTRY, GOWN, RETURN, CANTEEN)");
     console.log(`✓ ${students.length} Students created`);
     console.log("===================================\n");
 
@@ -466,10 +530,6 @@ const seedDatabase = async () => {
     console.log("STAFF - ENTRY (Auditorium Gate):");
     console.log("  Email: entry@convocation.com");
     console.log("  Password: Entry@Vit\n");
-
-    console.log("STAFF - SEATING (Seating Station):");
-    console.log("  Email: seating@convocation.com");
-    console.log("  Password: Seating@Vit\n");
 
     console.log("STAFF - GOWN (Robe Counter):");
     console.log("  Email: gown@convocation.com");

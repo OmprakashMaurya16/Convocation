@@ -2,7 +2,14 @@ import { useState, useEffect } from "react";
 import { apiRequest, getAuthSession } from "../utils/api";
 
 export default function DepartmentSeatingConfig({ open, onClose }) {
-  const [departments] = useState(["INFT", "CMPN", "EXTC", "EXCS", "BIOMD"]);
+  const [departments] = useState([
+    "INFT",
+    "CMPN",
+    "EXTC",
+    "EXCS",
+    "BIOMD",
+    "MMS",
+  ]);
   const [selectedDept, setSelectedDept] = useState("INFT");
   const [startSeat, setStartSeat] = useState("");
   const [endSeat, setEndSeat] = useState("");
@@ -40,12 +47,12 @@ export default function DepartmentSeatingConfig({ open, onClose }) {
     try {
       const [seatsRes, configsRes] = await Promise.all([
         apiRequest("/api/admin/all-seats", { token: auth.token }),
-        apiRequest("/api/admin/department-configs", { token: auth.token })
+        apiRequest("/api/admin/department-configs", { token: auth.token }),
       ]);
       setAllSeats(seatsRes.seats || []);
-      
+
       const configMap = {};
-      (configsRes.configs || []).forEach(c => {
+      (configsRes.configs || []).forEach((c) => {
         configMap[c.department] = c;
       });
       setConfigs(configMap);
@@ -67,7 +74,7 @@ export default function DepartmentSeatingConfig({ open, onClose }) {
 
     const startIndex = allSeats.indexOf(startSeat);
     const endIndex = allSeats.indexOf(endSeat);
-    
+
     if (startIndex === -1 || endIndex === -1) {
       setError("Invalid seat selected.");
       return;
@@ -89,13 +96,13 @@ export default function DepartmentSeatingConfig({ open, onClose }) {
         body: {
           department: selectedDept,
           startSeat,
-          endSeat
-        }
+          endSeat,
+        },
       });
-      
-      setConfigs(prev => ({
+
+      setConfigs((prev) => ({
         ...prev,
-        [selectedDept]: res.config
+        [selectedDept]: res.config,
       }));
       setSuccess("Configuration saved successfully.");
       setTimeout(() => {
@@ -114,58 +121,85 @@ export default function DepartmentSeatingConfig({ open, onClose }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="bg-surface rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
         <div className="p-4 border-b border-outline-variant/20 flex justify-between items-center">
-          <h2 className="text-lg font-bold text-on-surface">Department Seating Config</h2>
-          <button onClick={onClose} className="text-on-surface-variant hover:text-on-surface">
+          <h2 className="text-lg font-bold text-on-surface">
+            Department Seating Config
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-on-surface-variant hover:text-on-surface"
+          >
             <span className="material-symbols-outlined">close</span>
           </button>
         </div>
-        
+
         <div className="p-4 space-y-4">
-          {error && <div className="p-2 text-sm text-error bg-error-container rounded-md">{error}</div>}
-          {success && <div className="p-2 text-sm text-emerald-700 bg-emerald-50 rounded-md">{success}</div>}
-          
+          {error && (
+            <div className="p-2 text-sm text-error bg-error-container rounded-md">
+              {error}
+            </div>
+          )}
+          {success && (
+            <div className="p-2 text-sm text-emerald-700 bg-emerald-50 rounded-md">
+              {success}
+            </div>
+          )}
+
           {loading ? (
-            <div className="py-8 text-center text-on-surface-variant text-sm">Loading...</div>
+            <div className="py-8 text-center text-on-surface-variant text-sm">
+              Loading...
+            </div>
           ) : (
             <>
               <div>
-                <label className="block text-xs font-bold text-on-surface-variant mb-1">Department</label>
-                <select 
+                <label className="block text-xs font-bold text-on-surface-variant mb-1">
+                  Department
+                </label>
+                <select
                   value={selectedDept}
                   onChange={(e) => setSelectedDept(e.target.value)}
                   className="w-full p-2 border border-outline-variant/30 rounded-md bg-surface"
                 >
-                  {departments.map(d => (
-                    <option key={d} value={d}>{d}</option>
+                  {departments.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
                   ))}
                 </select>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-on-surface-variant mb-1">Start Seat</label>
-                  <select 
+                  <label className="block text-xs font-bold text-on-surface-variant mb-1">
+                    Start Seat
+                  </label>
+                  <select
                     value={startSeat}
                     onChange={(e) => setStartSeat(e.target.value)}
                     className="w-full p-2 border border-outline-variant/30 rounded-md bg-surface"
                   >
                     <option value="">Select...</option>
-                    {allSeats.map(s => (
-                      <option key={s} value={s}>{s}</option>
+                    {allSeats.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
                     ))}
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-on-surface-variant mb-1">End Seat</label>
-                  <select 
+                  <label className="block text-xs font-bold text-on-surface-variant mb-1">
+                    End Seat
+                  </label>
+                  <select
                     value={endSeat}
                     onChange={(e) => setEndSeat(e.target.value)}
                     className="w-full p-2 border border-outline-variant/30 rounded-md bg-surface"
                   >
                     <option value="">Select...</option>
-                    {allSeats.map(s => (
-                      <option key={s} value={s}>{s}</option>
+                    {allSeats.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -175,13 +209,13 @@ export default function DepartmentSeatingConfig({ open, onClose }) {
         </div>
 
         <div className="p-4 bg-surface-container-low border-t border-outline-variant/20 flex justify-end gap-2">
-          <button 
+          <button
             onClick={onClose}
             className="px-4 py-2 text-sm font-bold text-on-surface-variant hover:bg-surface-container rounded-md"
           >
             Cancel
           </button>
-          <button 
+          <button
             onClick={handleSave}
             disabled={saving || loading}
             className="px-4 py-2 text-sm font-bold bg-primary text-white rounded-md hover:bg-primary/90 disabled:opacity-50"
