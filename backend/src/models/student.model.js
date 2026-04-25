@@ -42,8 +42,14 @@ const studentSchema = new mongoose.Schema(
     },
 
     seat: {
-      section: String,
-      number: String,
+      section: {
+        type: String,
+        default: null,
+      },
+      number: {
+        type: String,
+        default: null,
+      },
     },
 
     gown: {
@@ -129,6 +135,14 @@ studentSchema.pre("save", async function () {
     }
   }
 
+  // Ensure seat object exists
+  if (!this.seat) {
+    this.seat = {
+      section: null,
+      number: null,
+    };
+  }
+
   // Ensure timestamps object exists
   if (!this.timestamps) {
     this.timestamps = {
@@ -140,7 +154,12 @@ studentSchema.pre("save", async function () {
     };
   }
 
-  console.log(`[Student.pre-save] ${this.studentId} - event:`, this.event);
+  console.log(
+    `[Student.pre-save] ${this.studentId} - event:`,
+    this.event,
+    "seat:",
+    this.seat,
+  );
 });
 
 // Ensure a seat can only be assigned to one student within a session.
