@@ -75,7 +75,7 @@ const buildActiveEventStudentFilter = (activeSince) => {
   const sessionKey = sessionStart.toISOString();
 
   // Initial/default session: include legacy/seeded students that haven't been
-  // stamped with a sessionKey yet.
+  // stamped with a sessionKey yet, or those with exact match
   if (sessionStart.getTime() === 0) {
     return {
       $or: [
@@ -86,7 +86,19 @@ const buildActiveEventStudentFilter = (activeSince) => {
     };
   }
 
-  return { "event.sessionKey": sessionKey };
+  // For active sessions: BOTH conditions must be true:
+  // 1. sessionKey matches the current session
+  // 2. registeredAt is within or after this session (double-check against DB)
+  return {
+    $and: [
+      { "event.sessionKey": sessionKey },
+      {
+        "event.registeredAt": {
+          $gte: sessionStart, // Only show students registered in or after this session
+        },
+      },
+    ],
+  };
 };
 
 const buildActiveEventLogFilter = (activeSince) => ({

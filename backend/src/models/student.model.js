@@ -176,6 +176,13 @@ studentSchema.index(
   },
 );
 
+// Compound index for efficient session filtering with registration time check
+// This optimizes queries that filter by sessionKey AND registeredAt
+studentSchema.index(
+  { "event.sessionKey": 1, "event.registeredAt": 1 },
+  { sparse: true },
+);
+
 const Student = mongoose.model("Student", studentSchema);
 
 module.exports = Student;

@@ -27,7 +27,7 @@ const seedSingleStudent = async () => {
     // Create single test student
     const student = new Student({
       name: "Omprakash Maurya",
-      studentId: "23101A0032",
+      studentId: "23101A0033",
       department: "INFT",
       phone: "",
       email: "",

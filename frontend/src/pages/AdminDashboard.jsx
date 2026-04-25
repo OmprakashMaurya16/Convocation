@@ -98,6 +98,32 @@ export default function AdminDashboard() {
 
     const socket = createSocketClient({ token: auth.token });
 
+    const fetchStatsForRefresh = async () => {
+      try {
+        const [statsResponse, liveScanResponse] = await Promise.all([
+          apiRequest("/api/admin/stats", {
+            token: auth.token,
+          }),
+          apiRequest("/api/admin/live-scans", {
+            token: auth.token,
+          }),
+        ]);
+
+        setStats(statsResponse);
+        setLiveScans(liveScanResponse?.scans || []);
+      } catch (error) {
+        const message = error.message || "Failed to load dashboard stats";
+        setStatsError(message);
+        if (
+          message.toLowerCase().includes("invalid token") ||
+          message.toLowerCase().includes("no token")
+        ) {
+          clearAuthSession();
+          navigate("/");
+        }
+      }
+    };
+
     socket.on("connect", () => {
       socket.emit("admin:subscribe");
     });
@@ -116,6 +142,12 @@ export default function AdminDashboard() {
       setDepartmentRefreshKey((value) => value + 1);
     });
 
+    socket.on("seating:refresh", () => {
+      // On reset event or major seating change, reload all data
+      setLiveScans([]);
+      fetchStatsForRefresh();
+    });
+
     socket.on("connect_error", (error) => {
       console.error("Socket connection error:", error);
     });
@@ -125,7 +157,7 @@ export default function AdminDashboard() {
     return () => {
       socket.disconnect();
     };
-  }, [auth]);
+  }, [auth, navigate]);
 
   const total = stats?.total || 0;
 
