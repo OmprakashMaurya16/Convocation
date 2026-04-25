@@ -393,8 +393,8 @@ const getSeatOccupancy = async (req, res) => {
     const activeFilter = buildActiveEventStudentFilter(activeSince);
     const seatedStudents = await Student.find({
       ...activeFilter,
-      "seat.section": { $exists: true, $ne: null, $ne: "" },
-      "seat.number": { $exists: true, $ne: null, $ne: "" },
+      "seat.section": { $type: "string", $ne: "", $ne: null },
+      "seat.number": { $type: "string", $ne: "", $ne: null },
     }).select("seat name studentId department phone email state");
 
     const overrides = await SeatOverride.find({}).select("seatId status");
@@ -411,7 +411,12 @@ const getSeatOccupancy = async (req, res) => {
       const state = String(student.state || "").trim();
 
       if (
-        ["SEAT_ALLOCATED", "GOWN_ISSUED", "COMPLETED", "CANTEEN_TOKEN_ISSUED"].includes(state)
+        [
+          "SEAT_ALLOCATED",
+          "GOWN_ISSUED",
+          "COMPLETED",
+          "CANTEEN_TOKEN_ISSUED",
+        ].includes(state)
       ) {
         confirmedSeatIds.push(seatId);
       } else {
@@ -556,8 +561,8 @@ const getSeatingReport = async (req, res) => {
     const activeFilter = buildActiveEventStudentFilter(activeSince);
     const seatedStudents = await Student.find({
       ...activeFilter,
-      "seat.section": { $exists: true, $ne: null, $ne: "" },
-      "seat.number": { $exists: true, $ne: null, $ne: "" },
+      "seat.section": { $type: "string", $ne: "", $ne: null },
+      "seat.number": { $type: "string", $ne: "", $ne: null },
     })
       .select("name studentId department seat state")
       .sort({ "seat.section": 1, "seat.number": 1, studentId: 1 });

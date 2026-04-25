@@ -148,6 +148,106 @@ export default function CandidateLedger({
     setPage(1);
   };
 
+  const handleExportPdf = async () => {
+    if (!auth?.token) {
+      alert("Session expired. Please login again.");
+      clearAuthSession();
+      if (onLogout) onLogout();
+      return;
+    }
+
+    try {
+      const report = await apiRequest("/api/admin/seating-report", {
+        token: auth.token,
+      });
+
+      const rows = Array.isArray(report?.items) ? report.items : [];
+
+      const escapeHtml = (value) =>
+        String(value ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+
+      const html = `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Seating Allocation Report</title>
+    <style>
+      :root { color-scheme: light; }
+      body { font-family: Arial, sans-serif; padding: 24px; color: #111827; }
+      h1 { margin: 0 0 6px; font-size: 18px; }
+      .meta { margin: 0 0 14px; font-size: 12px; color: #6B7280; }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { border: 1px solid #E5E7EB; padding: 8px 10px; font-size: 12px; text-align: left; }
+      th { background: #F9FAFB; }
+      @media print { body { padding: 0; } .meta { margin-bottom: 10px; } }
+    </style>
+  </head>
+  <body>
+    <h1>Seating Allocation Report</h1>
+    <p class="meta">Generated: ${escapeHtml(report?.generatedAt || new Date().toISOString())} • Total: ${escapeHtml(report?.count ?? rows.length)}</p>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 38px;">#</th>
+          <th>Name</th>
+          <th style="width: 120px;">Roll No</th>
+          <th style="width: 90px;">Seat</th>
+          <th style="width: 110px;">Department</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows
+          .map(
+            (row, idx) => `
+          <tr>
+            <td>${idx + 1}</td>
+            <td>${escapeHtml(row.name)}</td>
+            <td>${escapeHtml(row.rollno)}</td>
+            <td>${escapeHtml(row.seat)}</td>
+            <td>${escapeHtml(row.department)}</td>
+          </tr>`,
+          )
+          .join("")}
+      </tbody>
+    </table>
+    <script>
+      window.onload = () => {
+        window.focus();
+        window.print();
+      };
+    </script>
+  </body>
+</html>`;
+
+      const popup = window.open("", "_blank");
+      if (!popup) {
+        alert(
+          "Popup blocked. Allow popups to download the PDF (print-to-PDF).",
+        );
+        return;
+      }
+
+      popup.document.open();
+      popup.document.write(html);
+      popup.document.close();
+    } catch (error) {
+      const message = error.message || "Failed to prepare report";
+      alert(message);
+      if (
+        message.toLowerCase().includes("invalid token") ||
+        message.toLowerCase().includes("no token")
+      ) {
+        clearAuthSession();
+        if (onLogout) onLogout();
+      }
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen overflow-y-auto md:ml-56 lg:ml-64">
       {/* Header with Hamburger Menu */}
@@ -178,7 +278,10 @@ export default function CandidateLedger({
 
           {/* Action Buttons */}
           <div className="flex gap-1.5 xs:gap-2 md:gap-3 flex-shrink-0 w-full xs:w-auto">
-            <button className="flex items-center justify-center gap-1 xs:gap-1.5 flex-1 xs:flex-none px-2 xs:px-4 md:px-5 py-1.5 xs:py-2 md:py-2.5 bg-surface-container-low text-primary border border-outline-variant/20 rounded-lg md:rounded-xl font-label font-bold text-[8px] xs:text-[9px] sm:text-xs md:text-sm hover:bg-surface-container-high transition-all active:bg-surface-container-highest touch-none min-h-[44px]">
+            <button
+              onClick={handleExportPdf}
+              className="flex items-center justify-center gap-1 xs:gap-1.5 flex-1 xs:flex-none px-2 xs:px-4 md:px-5 py-1.5 xs:py-2 md:py-2.5 bg-surface-container-low text-primary border border-outline-variant/20 rounded-lg md:rounded-xl font-label font-bold text-[8px] xs:text-[9px] sm:text-xs md:text-sm hover:bg-surface-container-high transition-all active:bg-surface-container-highest touch-none min-h-[44px]"
+            >
               <span className="material-symbols-outlined text-xs md:text-lg">
                 upload_file
               </span>
