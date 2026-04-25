@@ -17,7 +17,10 @@ const getStudentByQR = async (req, res) => {
     let student = await Student.findOne({ ...activeFilter, qrToken });
 
     if (!student) {
-      student = await Student.findOne({ ...activeFilter, studentId: new RegExp(`^${qrToken}$`, "i") });
+      student = await Student.findOne({
+        ...activeFilter,
+        studentId: new RegExp(`^${qrToken}$`, "i"),
+      });
     }
 
     if (!student) {
@@ -56,7 +59,10 @@ const updateStudentProfile = async (req, res) => {
     // Find student by qrToken or studentId (case-insensitive)
     let student = await Student.findOne({ ...activeFilter, qrToken });
     if (!student) {
-      student = await Student.findOne({ ...activeFilter, studentId: new RegExp(`^${qrToken}$`, "i") });
+      student = await Student.findOne({
+        ...activeFilter,
+        studentId: new RegExp(`^${qrToken}$`, "i"),
+      });
     }
 
     if (!student) {
@@ -181,14 +187,11 @@ const eventLogin = async (req, res) => {
       currentSessionKey !== activeSessionKey;
 
     // Only set sessionKey if there's an actual active event (not epoch time)
-    const isValidActiveEvent = activeSessionKey && activeSessionKey !== new Date(0).toISOString();
+    const isValidActiveEvent =
+      activeSessionKey && activeSessionKey !== new Date(0).toISOString();
 
     if (shouldStartNewSessionForStudent) {
-      student.event = {
-        ...(student.event || {}),
-        ...(isValidActiveEvent && { sessionKey: activeSessionKey }),
-        registeredAt: now,
-      };
+      // NEW session: Reset student progress and initialize for new event
       student.state = "REGISTERED";
       student.seat = null;
       student.gown = {
@@ -202,11 +205,19 @@ const eventLogin = async (req, res) => {
       student.timestamps.gownIssuedAt = undefined;
       student.timestamps.returnedAt = undefined;
       student.timestamps.canteenTokenIssuedAt = undefined;
-    } else {
+
+      // Update event with new session key and registration time
       student.event = {
         ...(student.event || {}),
         ...(isValidActiveEvent && { sessionKey: activeSessionKey }),
         registeredAt: now,
+      };
+    } else {
+      // SAME session: Preserve student progress, just ensure sessionKey is set
+      student.event = {
+        ...(student.event || {}),
+        ...(isValidActiveEvent && { sessionKey: activeSessionKey }),
+        // DO NOT update registeredAt on re-login in same session
       };
     }
 
@@ -257,7 +268,12 @@ const eventLogin = async (req, res) => {
       Student.countDocuments({
         ...activeFilter,
         state: {
-          $in: ["SEAT_ALLOCATED", "GOWN_ISSUED", "COMPLETED", "CANTEEN_TOKEN_ISSUED"],
+          $in: [
+            "SEAT_ALLOCATED",
+            "GOWN_ISSUED",
+            "COMPLETED",
+            "CANTEEN_TOKEN_ISSUED",
+          ],
         },
       }),
       Student.countDocuments({
@@ -277,7 +293,7 @@ const eventLogin = async (req, res) => {
     ]);
 
     // Invalidate stats cache since new student added
-    statsCache.invalidate('stats_');
+    statsCache.invalidate("stats_");
 
     emitToAdmins("stats:updated", {
       total,
