@@ -154,7 +154,7 @@ export default function StudentDashboard() {
   return (
     <div className="flex flex-col min-h-screen bg-surface">
       {/* Responsive Title Bar - Always Row */}
-      <div className="w-full py-3 px-6 bg-[#002547] shadow-lg flex flex-row items-center justify-between gap-4 z-50">
+      <div className="w-full py-4 sm:py-5 md:py-6 px-6 bg-[#002547] shadow-lg flex flex-row items-center justify-between gap-4 z-50">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/10 flex items-center justify-center border border-white/20">
             <span className="material-symbols-outlined text-white text-xl md:text-2xl">

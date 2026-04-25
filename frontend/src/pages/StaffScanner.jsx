@@ -331,7 +331,7 @@ export default function StaffScanner() {
     <div className="min-h-screen flex flex-col bg-surface overflow-hidden">
       {/* Top Bar */}
       <ScannerTopBar
-        title="Scanner Ledger"
+        title="Convocation Scanner"
         counter={currentMode.counter}
         onSettings={() => console.log("Settings")}
         onLogout={handleLogout}

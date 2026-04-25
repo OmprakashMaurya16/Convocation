@@ -1,6 +1,6 @@
 export default function ScannerFrame({ children, centerContent = null }) {
   return (
-    <main className="relative overflow-hidden">
+    <main className="relative">
       <div className="relative z-10 flex items-center justify-center">
         <div className="relative h-[52vh] min-h-[320px] max-h-[560px] w-full rounded-2xl border-2 border-primary/30 bg-surface shadow-sm">
           {centerContent ? (
@@ -15,7 +15,7 @@ export default function ScannerFrame({ children, centerContent = null }) {
         </div>
       </div>
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-3 z-20 flex justify-center px-3 sm:bottom-5 sm:px-6 md:bottom-6">
+      <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center p-4 sm:p-6">
         {children}
       </div>
     </main>
