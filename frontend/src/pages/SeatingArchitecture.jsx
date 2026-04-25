@@ -27,6 +27,7 @@ export default function SeatingArchitecture({
   const [stats, setStats] = useState(null);
   const [seatStatusById, setSeatStatusById] = useState(null);
   const [seatInfoById, setSeatInfoById] = useState(null);
+  const [isLoadingSeats, setIsLoadingSeats] = useState(true);
 
   useEffect(() => {
     return () => {
@@ -73,9 +74,12 @@ export default function SeatingArchitecture({
         }
         setSeatStatusById(nextSeatStatus);
       }
+
+      setIsLoadingSeats(false);
     } catch (error) {
       const message = error.message || "Failed to load seating data";
       setResetNote(message);
+      setIsLoadingSeats(false);
 
       if (
         message.toLowerCase().includes("invalid token") ||
@@ -458,12 +462,23 @@ export default function SeatingArchitecture({
       {/* Main Content */}
       <main className="flex-1 p-1.5 xs:p-2 sm:p-3 md:p-5 lg:p-8 min-h-0 pb-6 sm:pb-8 md:pb-12">
         <div className="h-full min-h-[520px]">
-          <SeatMap
-            className="h-full"
-            seatStatusById={seatStatusById}
-            seatInfoById={seatInfoById}
-            onSeatStatusChange={handleSeatOverride}
-          />
+          {isLoadingSeats ? (
+            <div className="h-full flex items-center justify-center bg-surface-container rounded-lg">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-2 border-primary border-t-transparent mx-auto mb-4"></div>
+                <p className="text-sm text-slate-500">
+                  Loading seating chart...
+                </p>
+              </div>
+            </div>
+          ) : (
+            <SeatMap
+              className="h-full"
+              seatStatusById={seatStatusById}
+              seatInfoById={seatInfoById}
+              onSeatStatusChange={handleSeatOverride}
+            />
+          )}
         </div>
       </main>
 
