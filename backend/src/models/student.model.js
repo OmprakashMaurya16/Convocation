@@ -110,7 +110,7 @@ const studentSchema = new mongoose.Schema(
 );
 
 // Pre-save hook: Ensure event object always exists and is properly structured
-studentSchema.pre("save", function (next) {
+studentSchema.pre("save", async function () {
   // Ensure event object exists
   if (!this.event) {
     this.event = {
@@ -141,7 +141,6 @@ studentSchema.pre("save", function (next) {
   }
 
   console.log(`[Student.pre-save] ${this.studentId} - event:`, this.event);
-  next();
 });
 
 // Ensure a seat can only be assigned to one student within a session.
