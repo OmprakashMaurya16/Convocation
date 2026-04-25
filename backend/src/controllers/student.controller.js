@@ -13,6 +13,11 @@ const getStudentByQR = async (req, res) => {
     const activeSince = await getActiveEventStartAt();
     const activeFilter = buildActiveEventStudentFilter(activeSince);
 
+    console.log(
+      `[getStudentByQR] Fetching student: ${qrToken}, activeFilter:`,
+      activeFilter,
+    );
+
     // Try to find by qrToken first, then by studentId (case-insensitive)
     let student = await Student.findOne({ ...activeFilter, qrToken });
 
@@ -24,8 +29,16 @@ const getStudentByQR = async (req, res) => {
     }
 
     if (!student) {
+      console.warn(`[getStudentByQR] ⚠️ Student not found: ${qrToken}`);
       return res.status(404).json({ message: "Student not found" });
     }
+
+    console.log(`[getStudentByQR] ✅ Found student:`, {
+      studentId: student.studentId,
+      state: student.state,
+      seat: student.seat,
+      sessionKey: student.event?.sessionKey,
+    });
 
     res.json({
       name: student.name,
@@ -183,15 +196,31 @@ const eventLogin = async (req, res) => {
 
     const now = new Date();
     const currentSessionKey = student.event?.sessionKey;
-    const shouldStartNewSessionForStudent =
-      currentSessionKey !== activeSessionKey;
-
-    // Only set sessionKey if there's an actual active event (not epoch time)
     const isValidActiveEvent =
       activeSessionKey && activeSessionKey !== new Date(0).toISOString();
 
-    if (shouldStartNewSessionForStudent) {
-      // NEW session: Reset student progress and initialize for new event
+    console.log(`[eventLogin] Student: ${student.studentId}`);
+    console.log(`[eventLogin] currentSessionKey: ${currentSessionKey}`);
+    console.log(`[eventLogin] activeSessionKey: ${activeSessionKey}`);
+    console.log(`[eventLogin] isValidActiveEvent: ${isValidActiveEvent}`);
+
+    // THREE distinct cases:
+    // 1. First ever login (no sessionKey) → Initialize
+    // 2. Transitioning to NEW event (sessionKey differs) → Reset
+    // 3. Re-login to SAME session (sessionKey matches) → Preserve
+
+    const hasNoSessionKeyYet = !currentSessionKey;
+    const isTransitioningToNewEvent =
+      currentSessionKey && currentSessionKey !== activeSessionKey;
+
+    console.log(`[eventLogin] hasNoSessionKeyYet: ${hasNoSessionKeyYet}`);
+    console.log(
+      `[eventLogin] isTransitioningToNewEvent: ${isTransitioningToNewEvent}`,
+    );
+
+    if (hasNoSessionKeyYet) {
+      // Case 1: FIRST EVER LOGIN - Initialize as REGISTERED
+      console.log(`[eventLogin] Case 1: FIRST LOGIN - initializing`);
       student.state = "REGISTERED";
       student.seat = null;
       student.gown = {
@@ -200,30 +229,80 @@ const eventLogin = async (req, res) => {
         returned: false,
       };
       student.canteenToken = { ...(student.canteenToken || {}), issued: false };
-      student.timestamps = student.timestamps || {};
-      student.timestamps.checkedInAt = undefined;
-      student.timestamps.gownIssuedAt = undefined;
-      student.timestamps.returnedAt = undefined;
-      student.timestamps.canteenTokenIssuedAt = undefined;
+      student.timestamps = {
+        checkedInAt: null,
+        seatedAt: null,
+        gownIssuedAt: null,
+        returnedAt: null,
+        canteenTokenIssuedAt: null,
+      };
 
-      // Update event with new session key and registration time
+      // ALWAYS set sessionKey on first login (regardless of event validity)
       student.event = {
-        ...(student.event || {}),
-        ...(isValidActiveEvent && { sessionKey: activeSessionKey }),
+        sessionKey: activeSessionKey, // ← ALWAYS SET, even if epoch
+        registeredAt: now,
+      };
+    } else if (isTransitioningToNewEvent) {
+      // Case 2: NEW EVENT SESSION - Reset progress
+      console.log(`[eventLogin] Case 2: NEW EVENT - resetting state`);
+      student.state = "REGISTERED";
+      student.seat = null;
+      student.gown = {
+        ...(student.gown || {}),
+        issued: false,
+        returned: false,
+      };
+      student.canteenToken = { ...(student.canteenToken || {}), issued: false };
+      student.timestamps = {
+        checkedInAt: null,
+        seatedAt: null,
+        gownIssuedAt: null,
+        returnedAt: null,
+        canteenTokenIssuedAt: null,
+      };
+
+      // ALWAYS set sessionKey (regardless of event validity)
+      student.event = {
+        sessionKey: activeSessionKey, // ← ALWAYS SET, even if epoch
         registeredAt: now,
       };
     } else {
-      // SAME session: Preserve student progress, just ensure sessionKey is set
+      // Case 3: RE-LOGIN TO SAME SESSION - PRESERVE state completely!
+      // Just ensure sessionKey is set (no changes to state/seat/gown/timestamps)
+      console.log(`[eventLogin] Case 3: SAME SESSION - preserving state`);
       student.event = {
-        ...(student.event || {}),
-        ...(isValidActiveEvent && { sessionKey: activeSessionKey }),
-        // DO NOT update registeredAt on re-login in same session
+        sessionKey: activeSessionKey, // ← ALWAYS SET to ensure consistency
+        registeredAt: student.event?.registeredAt || now, // Keep existing registeredAt
       };
     }
 
+    console.log(`[eventLogin] Updated event object:`, {
+      sessionKey: student.event.sessionKey,
+      registeredAt: student.event.registeredAt,
+      state: student.state,
+      seat: student.seat,
+    });
+
     student.phone = trimmedPhone;
     student.company = trimmedCompany;
-    await student.save();
+
+    // SAVE TO DATABASE
+    try {
+      await student.save();
+      console.log(
+        `[eventLogin] ✅ Saved student to DB - sessionKey: ${student.event?.sessionKey}, state: ${student.state}`,
+      );
+    } catch (saveError) {
+      console.error(
+        `[eventLogin] ❌ FAILED TO SAVE student: ${student.studentId}`,
+        saveError,
+      );
+      return res.status(500).json({
+        success: false,
+        message: "Failed to save session to database",
+        error: saveError.message,
+      });
+    }
 
     // Real-time updates
     emitToStudent(student.studentId, "student:updated", {

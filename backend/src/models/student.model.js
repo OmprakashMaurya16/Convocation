@@ -72,25 +72,77 @@ const studentSchema = new mongoose.Schema(
       sessionKey: {
         type: String,
         index: true,
+        default: null,
       },
       registeredAt: {
         type: Date,
         index: true,
+        default: null,
       },
     },
 
     timestamps: {
-      checkedInAt: Date,
-      seatedAt: Date,
-      gownIssuedAt: Date,
-      returnedAt: Date,
-      canteenTokenIssuedAt: Date,
+      checkedInAt: {
+        type: Date,
+        default: null,
+      },
+      seatedAt: {
+        type: Date,
+        default: null,
+      },
+      gownIssuedAt: {
+        type: Date,
+        default: null,
+      },
+      returnedAt: {
+        type: Date,
+        default: null,
+      },
+      canteenTokenIssuedAt: {
+        type: Date,
+        default: null,
+      },
     },
   },
   {
     timestamps: true,
   },
 );
+
+// Pre-save hook: Ensure event object always exists and is properly structured
+studentSchema.pre("save", function (next) {
+  // Ensure event object exists
+  if (!this.event) {
+    this.event = {
+      sessionKey: null,
+      registeredAt: null,
+    };
+  }
+
+  // Ensure event object has both required fields
+  if (typeof this.event === "object") {
+    if (!("sessionKey" in this.event)) {
+      this.event.sessionKey = null;
+    }
+    if (!("registeredAt" in this.event)) {
+      this.event.registeredAt = null;
+    }
+  }
+
+  // Ensure timestamps object exists
+  if (!this.timestamps) {
+    this.timestamps = {
+      checkedInAt: null,
+      seatedAt: null,
+      gownIssuedAt: null,
+      returnedAt: null,
+      canteenTokenIssuedAt: null,
+    };
+  }
+
+  console.log(`[Student.pre-save] ${this.studentId} - event:`, this.event);
+  next();
+});
 
 // Ensure a seat can only be assigned to one student within a session.
 // Sparse index allows many students with no seat assigned.
