@@ -59,7 +59,7 @@ const getCurrentAction = (state, seatSection, seatNumber) => {
 export default function StudentDashboard() {
   const navigate = useNavigate();
   const studentSession = useMemo(() => getStudentSession(), []);
-  const [activeNav, setActiveNav] = useState("dashboard");
+  // Removed bottom nav state
   const [student, setStudent] = useState(null);
   const [error, setError] = useState("");
 
@@ -153,35 +153,28 @@ export default function StudentDashboard() {
 
   return (
     <div className="flex flex-col min-h-screen bg-surface">
-      {/* Top App Bar */}
-      <header className="sticky top-0 w-full z-40 bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-md shadow-sm dark:shadow-none">
-        <div className="flex items-center justify-between px-4 md:px-6 py-4 w-full max-w-6xl mx-auto">
-          <div className="flex items-center gap-2 md:gap-3">
-            <span className="material-symbols-outlined text-blue-900 dark:text-blue-200 text-base md:text-lg">
-              menu
+      {/* Responsive Title Bar - Always Row */}
+      <div className="w-full py-3 px-6 bg-[#002547] shadow-lg flex flex-row items-center justify-between gap-4 z-50">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/10 flex items-center justify-center border border-white/20">
+            <span className="material-symbols-outlined text-white text-xl md:text-2xl">
+              school
             </span>
-            <h1 className="font-headline font-bold text-base md:text-lg tracking-tight text-blue-900 dark:text-blue-200">
-              Convocation 2024
-            </h1>
           </div>
-          <div className="w-8 md:w-10 h-8 md:h-10 rounded-full overflow-hidden bg-surface-container-high border-2 border-primary/10 flex-shrink-0">
-            <img
-              alt="Student Avatar"
-              className="w-full h-full object-cover"
-              src="https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=200&q=80"
-            />
-          </div>
-          <button
-            onClick={handleLogout}
-            className="rounded-lg bg-error px-3 py-1.5 text-xs md:text-sm font-semibold text-white hover:opacity-90 transition-opacity"
-          >
-            Logout
-          </button>
+          <h1 className="font-headline font-semibold text-lg md:text-xl tracking-wide text-white">
+            Convocation 2026
+          </h1>
         </div>
-      </header>
+        <button
+          onClick={handleLogout}
+          className="rounded-lg bg-white/10 border border-white/20 px-3 py-1.5 text-xs md:text-sm font-medium text-white hover:bg-white/20 transition-all"
+        >
+          Logout
+        </button>
+      </div>
 
       {/* Main Content */}
-      <main className="flex-1 w-full max-w-6xl mx-auto px-4 md:px-6 pt-4 md:pt-8 pb-28 md:pb-8 space-y-6 md:space-y-8">
+      <main className="flex-1 w-full max-w-6xl mx-auto px-4 md:px-6 pt-4 md:pt-8 pb-8 md:pb-8 space-y-6 md:space-y-8">
         {/* Profile Header Section */}
         <section className="flex flex-col items-center text-center space-y-2 md:space-y-3">
           <h2 className="font-headline font-extrabold text-2xl md:text-4xl lg:text-5xl tracking-tight text-primary">
@@ -225,68 +218,6 @@ export default function StudentDashboard() {
           </p>
         </section>
 
-        {/* Status Tracker Section */}
-        <section className="bg-surface-container-low rounded-lg md:rounded-xl p-4 md:p-6">
-          <h3 className="font-headline font-bold text-sm md:text-base text-primary mb-4 md:mb-6 flex items-center gap-2">
-            <span className="material-symbols-outlined text-sm md:text-base">
-              task_alt
-            </span>
-            Registration Status
-          </h3>
-
-          <div className="relative px-1 md:px-2">
-            {/* Progress Line Background */}
-            <div className="absolute top-3 left-0 w-full h-1 bg-outline-variant/30 rounded-full"></div>
-
-            {/* Progress Line Active */}
-            <div
-              className="absolute top-3 left-0 h-1 rounded-full"
-              style={{
-                width: `${(safeCurrentStateIndex / (STAGE_ORDER.length - 1)) * 100}%`,
-                background: "linear-gradient(135deg, #002547 0%, #1b3b5f 100%)",
-              }}
-            ></div>
-
-            {/* Stages */}
-            <div className="relative flex justify-between">
-              {stages.map((stage, index) => (
-                <div
-                  key={index}
-                  className="flex flex-col items-center space-y-1 md:space-y-2"
-                >
-                  <div
-                    className={`w-5 md:w-6 h-5 md:h-6 rounded-full flex items-center justify-center z-10 transition-all ${
-                      stage.active ? "ring-2 md:ring-4 ring-primary-fixed" : ""
-                    }`}
-                    style={{
-                      background:
-                        stage.completed || stage.active
-                          ? "linear-gradient(135deg, #002547 0%, #1b3b5f 100%)"
-                          : "#c0dfee",
-                    }}
-                  >
-                    <span
-                      className={`material-symbols-outlined text-xs md:text-sm ${
-                        stage.completed || stage.active
-                          ? "text-white"
-                          : "text-on-surface"
-                      }`}
-                      style={{ fontVariationSettings: "'FILL' 1" }}
-                    >
-                      {stage.icon}
-                    </span>
-                  </div>
-                  <span className="font-label text-[9px] md:text-xs font-bold text-primary text-center leading-tight">
-                    {stage.label}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Checked-in Status Card */}
-
         {/* Seat Details Card */}
         <section className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
           <div className="bg-surface-container-highest rounded-lg md:rounded-xl p-4 md:p-5 flex flex-col justify-center items-center lg:col-span-2">
@@ -304,6 +235,85 @@ export default function StudentDashboard() {
             <span className="font-headline font-extrabold text-3xl md:text-5xl text-primary">
               {seatNumber}
             </span>
+          </div>
+        </section>
+
+        {/* Status Tracker Section */}
+        <section className="bg-white rounded-xl md:rounded-2xl p-6 md:p-10 shadow-lg shadow-blue-900/5 border border-blue-50/50">
+          <div className="flex items-center justify-between mb-10">
+            <h3 className="font-headline font-bold text-xl md:text-2xl text-blue-950 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+                <span className="material-symbols-outlined text-blue-600">
+                  account_tree
+                </span>
+              </div>
+              Progression Status
+            </h3>
+            <div className="px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-xs font-bold uppercase tracking-wider">
+              Live updates
+            </div>
+          </div>
+
+          <div className="flex flex-col relative space-y-0">
+            {stages.map((stage, index) => (
+              <div key={index} className="flex group">
+                {/* Timeline Connector Column */}
+                <div className="flex flex-col items-center mr-6 md:mr-8">
+                  {/* Icon Node */}
+                  <div
+                    className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center z-10 transition-all duration-300 border-2 ${
+                      stage.active 
+                        ? "ring-4 ring-blue-500/30 border-blue-600 bg-white shadow-xl scale-110" 
+                        : stage.completed
+                          ? "bg-blue-600 border-blue-600 shadow-md shadow-blue-200"
+                          : "bg-slate-50 border-slate-300"
+                    }`}
+                  >
+                    <span
+                      className={`material-symbols-outlined text-lg md:text-xl transition-colors ${
+                        stage.completed || stage.active
+                          ? stage.active ? "text-blue-600 font-bold" : "text-white"
+                          : "text-slate-500 font-bold"
+                      }`}
+                      style={{ fontVariationSettings: stage.completed ? "'FILL' 1" : "'FILL' 0" }}
+                    >
+                      {stage.completed ? "check" : stage.icon}
+                    </span>
+                  </div>
+                  
+                  {/* Vertical Line */}
+                  {index !== stages.length - 1 && (
+                    <div
+                      className={`w-1.5 flex-1 my-1 transition-colors duration-500 rounded-full ${
+                        stage.completed ? "bg-blue-600" : "bg-slate-200"
+                      }`}
+                      style={{ minHeight: '3rem' }}
+                    ></div>
+                  )}
+                </div>
+
+                {/* Label Column */}
+                <div className={`flex flex-col pt-2 pb-12 ${index === stages.length - 1 ? "pb-0" : ""}`}>
+                  <span className={`font-headline text-base md:text-xl transition-all duration-300 ${
+                    stage.active 
+                      ? "font-black text-blue-950 translate-x-1" 
+                      : stage.completed 
+                        ? "font-bold text-slate-800" 
+                        : "font-bold text-slate-600"
+                  }`}>
+                    {stage.label}
+                  </span>
+                  {stage.active && (
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <div className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-ping"></div>
+                      <span className="text-[10px] md:text-xs text-blue-700 font-black uppercase tracking-widest bg-blue-50 px-2 py-0.5 rounded">
+                        Currently here
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         </section>
 
@@ -330,51 +340,10 @@ export default function StudentDashboard() {
           </div>
         </section>
 
-        {/* Additional Info / Help - Hidden on mobile, visible on desktop */}
-        <div className="hidden md:flex pt-2 md:pt-4 justify-between items-center px-2">
-          <button className="flex items-center gap-2 text-primary font-label text-sm font-semibold hover:opacity-80 transition">
-            <span className="material-symbols-outlined text-base">
-              support_agent
-            </span>
-            Need Help?
-          </button>
-          <button className="flex items-center gap-2 text-outline font-label text-sm font-semibold hover:opacity-80 transition">
-            <span className="material-symbols-outlined text-base">map</span>
-            Hall Map
-          </button>
-        </div>
+        {/* Removed Help and Hall Map section */}
       </main>
 
-      {/* Bottom Navigation Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 md:static md:border-t md:border-slate-200/20 md:dark:border-slate-800/20 w-full h-20 bg-white/90 dark:bg-slate-950/90 backdrop-blur-xl shadow-[0_-4px_20px_rgba(0,0,0,0.05)] md:shadow-none border-t border-slate-200/20 dark:border-slate-800/20">
-        <div className="flex justify-around items-center w-full px-2 md:px-4 h-full max-w-6xl mx-auto">
-          {navItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setActiveNav(item.id)}
-              className={`flex flex-col items-center justify-center px-3 md:px-4 py-2 rounded-lg md:rounded-xl transition-all duration-150 active:scale-90 ${
-                activeNav === item.id
-                  ? "text-blue-900 dark:text-white bg-blue-50 dark:bg-blue-900/40"
-                  : "text-slate-400 dark:text-slate-500 hover:text-blue-800 dark:hover:text-blue-200"
-              }`}
-            >
-              <span
-                className="material-symbols-outlined text-lg md:text-xl"
-                style={
-                  activeNav === item.id
-                    ? { fontVariationSettings: "'FILL' 1" }
-                    : {}
-                }
-              >
-                {item.icon}
-              </span>
-              <span className="font-label font-semibold text-xs md:text-xs uppercase tracking-wider mt-1 leading-tight">
-                {item.label}
-              </span>
-            </button>
-          ))}
-        </div>
-      </nav>
+      {/* Removed Bottom Navigation Bar */}
     </div>
   );
 }
