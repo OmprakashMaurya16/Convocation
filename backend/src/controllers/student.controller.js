@@ -12,18 +12,19 @@ const getStudentByQR = async (req, res) => {
 
     const activeSince = await getActiveEventStartAt();
     const activeFilter = buildActiveEventStudentFilter(activeSince);
+    const displayFilter = { ...activeFilter, isActive: true };
 
     console.log(
-      `[getStudentByQR] Fetching student: ${qrToken}, activeFilter:`,
-      activeFilter,
+      `[getStudentByQR] Fetching student: ${qrToken}, displayFilter:`,
+      displayFilter,
     );
 
     // Try to find by qrToken first, then by studentId (case-insensitive)
-    let student = await Student.findOne({ ...activeFilter, qrToken });
+    let student = await Student.findOne({ ...displayFilter, qrToken });
 
     if (!student) {
       student = await Student.findOne({
-        ...activeFilter,
+        ...displayFilter,
         studentId: new RegExp(`^${qrToken}$`, "i"),
       });
     }
@@ -68,12 +69,13 @@ const updateStudentProfile = async (req, res) => {
 
     const activeSince = await getActiveEventStartAt();
     const activeFilter = buildActiveEventStudentFilter(activeSince);
+    const displayFilter = { ...activeFilter, isActive: true };
 
     // Find student by qrToken or studentId (case-insensitive)
-    let student = await Student.findOne({ ...activeFilter, qrToken });
+    let student = await Student.findOne({ ...displayFilter, qrToken });
     if (!student) {
       student = await Student.findOne({
-        ...activeFilter,
+        ...displayFilter,
         studentId: new RegExp(`^${qrToken}$`, "i"),
       });
     }
@@ -222,6 +224,7 @@ const eventLogin = async (req, res) => {
       // Case 1: FIRST EVER LOGIN - Initialize as REGISTERED
       console.log(`[eventLogin] Case 1: FIRST LOGIN - initializing`);
       student.state = "REGISTERED";
+      student.isActive = true;
       student.seat = null;
       student.gown = {
         ...(student.gown || {}),
@@ -246,6 +249,7 @@ const eventLogin = async (req, res) => {
       // Case 2: NEW EVENT SESSION - Reset progress
       console.log(`[eventLogin] Case 2: NEW EVENT - resetting state`);
       student.state = "REGISTERED";
+      student.isActive = true;
       student.seat = null;
       student.gown = {
         ...(student.gown || {}),
@@ -270,6 +274,7 @@ const eventLogin = async (req, res) => {
       // Case 3: RE-LOGIN TO SAME SESSION - PRESERVE state completely!
       // Just ensure sessionKey is set (no changes to state/seat/gown/timestamps)
       console.log(`[eventLogin] Case 3: SAME SESSION - preserving state`);
+      student.isActive = true;
       student.event = {
         sessionKey: activeSessionKey, // ← ALWAYS SET to ensure consistency
         registeredAt: student.event?.registeredAt || now, // Keep existing registeredAt
@@ -285,6 +290,9 @@ const eventLogin = async (req, res) => {
 
     student.phone = trimmedPhone;
     student.company = trimmedCompany;
+
+    // Mark event object as modified so Mongoose knows to save it
+    student.markModified("event");
 
     // SAVE TO DATABASE
     try {
@@ -323,6 +331,15 @@ const eventLogin = async (req, res) => {
       updatedAt: student.updatedAt,
     });
 
+    const displayFilter = { ...activeFilter, isActive: true };
+
+    console.log(`[eventLogin] Query Debug:`, {
+      activeFilter: JSON.stringify(activeFilter),
+      displayFilter: JSON.stringify(displayFilter),
+      activeSessionKey,
+      activeSince,
+    });
+
     const [
       total,
       checkedIn,
@@ -331,9 +348,9 @@ const eventLogin = async (req, res) => {
       completed,
       canteenTokenIssued,
     ] = await Promise.all([
-      Student.countDocuments(activeFilter),
+      Student.countDocuments(displayFilter),
       Student.countDocuments({
-        ...activeFilter,
+        ...displayFilter,
         state: {
           $in: [
             "CHECKED_IN",
@@ -345,7 +362,7 @@ const eventLogin = async (req, res) => {
         },
       }),
       Student.countDocuments({
-        ...activeFilter,
+        ...displayFilter,
         state: {
           $in: [
             "SEAT_ALLOCATED",
@@ -356,23 +373,43 @@ const eventLogin = async (req, res) => {
         },
       }),
       Student.countDocuments({
-        ...activeFilter,
+        ...displayFilter,
         state: {
           $in: ["GOWN_ISSUED", "COMPLETED", "CANTEEN_TOKEN_ISSUED"],
         },
       }),
       Student.countDocuments({
-        ...activeFilter,
+        ...displayFilter,
         state: { $in: ["COMPLETED", "CANTEEN_TOKEN_ISSUED"] },
       }),
       Student.countDocuments({
-        ...activeFilter,
+        ...displayFilter,
         state: "CANTEEN_TOKEN_ISSUED",
       }),
     ]);
 
     // Invalidate stats cache since new student added
     statsCache.invalidate("stats_");
+
+    console.log(`[eventLogin] Stats Counts:`, {
+      total,
+      checkedIn,
+      seatAllocated,
+      gownIssued,
+      completed,
+      canteenTokenIssued,
+    });
+
+    // Verify student was saved correctly
+    const verifySaved = await Student.findOne({
+      qrToken: student.qrToken,
+    }).select("isActive event.sessionKey state");
+    console.log(`[eventLogin] Student Verification:`, {
+      studentId: student.studentId,
+      isActive: verifySaved?.isActive,
+      sessionKey: verifySaved?.event?.sessionKey,
+      state: verifySaved?.state,
+    });
 
     emitToAdmins("stats:updated", {
       total,

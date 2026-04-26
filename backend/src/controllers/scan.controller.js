@@ -79,6 +79,7 @@ const scanQR = async (req, res) => {
 
     const activeSince = await getActiveEventStartAt();
     const activeFilter = buildActiveEventStudentFilter(activeSince);
+    const displayFilter = { ...activeFilter, isActive: true };
 
     if (!qrToken || !scanType) {
       return res.status(400).json({ success: false, message: "Missing data" });
@@ -92,7 +93,7 @@ const scanQR = async (req, res) => {
     }
 
     let student = await Student.findOne({
-      ...activeFilter,
+      ...displayFilter,
       $or: [{ qrToken }, { studentId: qrToken }],
     });
 
@@ -131,7 +132,9 @@ const scanQR = async (req, res) => {
     let valid = false;
     let message = "";
 
-    console.log(`[scanQR] Starting ${normalizedScanType} scan for student ${student.studentId}, current state: ${student.state}, previousSeatId: ${previousSeatId}`);
+    console.log(
+      `[scanQR] Starting ${normalizedScanType} scan for student ${student.studentId}, current state: ${student.state}, previousSeatId: ${previousSeatId}`,
+    );
 
     if (normalizedScanType === "ENTRY" && student.state === "REGISTERED") {
       // Entry gate: check-in + assign seat.
@@ -262,10 +265,14 @@ const scanQR = async (req, res) => {
           ? `${student.seat.section}${student.seat.number}`
           : null;
 
-      console.log(`[scanQR] After ${normalizedScanType} processing - previousSeatId: ${previousSeatId}, nextSeatId: ${nextSeatId}, valid: ${valid}`);
+      console.log(
+        `[scanQR] After ${normalizedScanType} processing - previousSeatId: ${previousSeatId}, nextSeatId: ${nextSeatId}, valid: ${valid}`,
+      );
 
       if (valid && nextSeatId && nextSeatId !== previousSeatId) {
-        console.log(`[scanQR] Emitting seating:seatAssigned for ${nextSeatId} (NEW seat)`);
+        console.log(
+          `[scanQR] Emitting seating:seatAssigned for ${nextSeatId} (NEW seat)`,
+        );
         emitToAdmins("seating:seatAssigned", {
           seatId: nextSeatId,
           seatStatus: "reserved",
@@ -281,7 +288,9 @@ const scanQR = async (req, res) => {
       // Confirm seat is occupied (green) for ALL valid scans once seat is allocated
       if (valid && (previousSeatId || nextSeatId)) {
         const seatIdToConfirm = previousSeatId || nextSeatId;
-        console.log(`[scanQR] Emitting seating:seatConfirmed for ${seatIdToConfirm} - status: occupied (scanType: ${normalizedScanType}, previousSeatId: ${previousSeatId}, nextSeatId: ${nextSeatId})`);
+        console.log(
+          `[scanQR] Emitting seating:seatConfirmed for ${seatIdToConfirm} - status: occupied (scanType: ${normalizedScanType}, previousSeatId: ${previousSeatId}, nextSeatId: ${nextSeatId})`,
+        );
 
         emitToAdmins("seating:seatConfirmed", {
           seatId: seatIdToConfirm,

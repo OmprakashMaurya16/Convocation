@@ -26,13 +26,14 @@ const getStats = async (req, res) => {
     const activeSince = await getActiveEventStartAt();
     const sessionLabel = await getActiveEventLabel();
     const activeFilter = buildActiveEventStudentFilter(activeSince);
+    const displayFilter = { ...activeFilter, isActive: true };
 
-    const total = await Student.countDocuments(activeFilter);
+    const total = await Student.countDocuments(displayFilter);
 
     // Cumulative stage counters (monotonic): once a candidate progresses,
     // they are still considered checked-in for ops reporting.
     const checkedIn = await Student.countDocuments({
-      ...activeFilter,
+      ...displayFilter,
       state: {
         $in: [
           "CHECKED_IN",
@@ -44,7 +45,7 @@ const getStats = async (req, res) => {
       },
     });
     const seatAllocated = await Student.countDocuments({
-      ...activeFilter,
+      ...displayFilter,
       state: {
         $in: [
           "SEAT_ALLOCATED",
@@ -55,15 +56,15 @@ const getStats = async (req, res) => {
       },
     });
     const gownIssued = await Student.countDocuments({
-      ...activeFilter,
+      ...displayFilter,
       state: { $in: ["GOWN_ISSUED", "COMPLETED", "CANTEEN_TOKEN_ISSUED"] },
     });
     const completed = await Student.countDocuments({
-      ...activeFilter,
+      ...displayFilter,
       state: { $in: ["COMPLETED", "CANTEEN_TOKEN_ISSUED"] },
     });
     const canteenTokenIssued = await Student.countDocuments({
-      ...activeFilter,
+      ...displayFilter,
       state: "CANTEEN_TOKEN_ISSUED",
     });
 
@@ -172,7 +173,10 @@ const getCandidates = async (req, res) => {
     const department = req.query.department || "ALL";
     const stage = req.query.stage || "ALL";
 
-    const filter = buildActiveEventStudentFilter(activeSince);
+    const filter = {
+      ...buildActiveEventStudentFilter(activeSince),
+      isActive: true,
+    };
     if (department !== "ALL") {
       filter.department = department;
     }
@@ -188,7 +192,7 @@ const getCandidates = async (req, res) => {
         .skip((page - 1) * limit)
         .limit(limit)
         .select("name qrToken studentId department state seat updatedAt"),
-      Student.distinct("department"),
+      Student.distinct("department", { isActive: true }),
     ]);
 
     const totalPages = Math.max(1, Math.ceil(total / limit));
@@ -235,6 +239,7 @@ const getDepartmentStats = async (req, res) => {
   try {
     const activeSince = await getActiveEventStartAt();
     const activeFilter = buildActiveEventStudentFilter(activeSince);
+    const displayFilter = { ...activeFilter, isActive: true };
 
     const cacheKey = `deptstats_${new Date(activeSince || 0).toISOString()}`;
     const cached = statsCache.get(cacheKey);
@@ -246,7 +251,7 @@ const getDepartmentStats = async (req, res) => {
     const departments = ["INFT", "CMPN", "EXTC", "EXCS", "BIOMD", "MMS"];
 
     const rows = await Student.aggregate([
-      { $match: activeFilter },
+      { $match: displayFilter },
       {
         $group: {
           _id: { dept: { $ifNull: ["$department", ""] } },
@@ -301,11 +306,12 @@ const resetSeatAllocations = async (req, res) => {
   try {
     const activeSince = await getActiveEventStartAt();
     const activeFilter = buildActiveEventStudentFilter(activeSince);
+    const displayFilter = { ...activeFilter, isActive: true };
 
     // Seat-only reset for CURRENT session:
-    // - Clears seat assignments for session students
+    // - Clears seat assignments for active session students
     // NOTE: Overrides are preserved (no deletions).
-    const clearedSeatsResult = await Student.updateMany(activeFilter, {
+    const clearedSeatsResult = await Student.updateMany(displayFilter, {
       $unset: { seat: "" },
     });
 
@@ -320,9 +326,9 @@ const resetSeatAllocations = async (req, res) => {
         completed,
         canteenTokenIssued,
       ] = await Promise.all([
-        Student.countDocuments(activeFilter),
+        Student.countDocuments(displayFilter),
         Student.countDocuments({
-          ...activeFilter,
+          ...displayFilter,
           state: {
             $in: [
               "CHECKED_IN",
@@ -334,7 +340,7 @@ const resetSeatAllocations = async (req, res) => {
           },
         }),
         Student.countDocuments({
-          ...activeFilter,
+          ...displayFilter,
           state: {
             $in: [
               "SEAT_ALLOCATED",
@@ -345,17 +351,17 @@ const resetSeatAllocations = async (req, res) => {
           },
         }),
         Student.countDocuments({
-          ...activeFilter,
+          ...displayFilter,
           state: {
             $in: ["GOWN_ISSUED", "COMPLETED", "CANTEEN_TOKEN_ISSUED"],
           },
         }),
         Student.countDocuments({
-          ...activeFilter,
+          ...displayFilter,
           state: { $in: ["COMPLETED", "CANTEEN_TOKEN_ISSUED"] },
         }),
         Student.countDocuments({
-          ...activeFilter,
+          ...displayFilter,
           state: "CANTEEN_TOKEN_ISSUED",
         }),
       ]);
@@ -608,12 +614,28 @@ const resetEventProgress = async (req, res) => {
   try {
     // Start a NEW session cutoff. Previous members remain stored in DB,
     // but are excluded from the active event views.
+
+    // BEFORE reset: Deactivate all currently active students
+    const currentActiveSince = await getActiveEventStartAt();
+    const currentActiveFilter =
+      buildActiveEventStudentFilter(currentActiveSince);
+
+    const deactivateResult = await Student.updateMany(currentActiveFilter, {
+      $set: { isActive: false },
+    });
+
+    console.log(
+      `[resetEventProgress] Deactivated ${deactivateResult.modifiedCount} students`,
+    );
+
+    // NOW create the new session
     const requestedLabel = req?.body?.label;
     const { activeSince, label } = await setActiveEventSession({
       activeSince: new Date(),
       label: requestedLabel,
     });
     const activeFilter = buildActiveEventStudentFilter(activeSince);
+    const displayFilter = { ...activeFilter, isActive: true };
 
     if (getIO()) {
       emitToAdmins("seating:refresh", { reason: "event-session-reset" });
@@ -626,9 +648,9 @@ const resetEventProgress = async (req, res) => {
         completed,
         canteenTokenIssued,
       ] = await Promise.all([
-        Student.countDocuments(activeFilter),
+        Student.countDocuments(displayFilter),
         Student.countDocuments({
-          ...activeFilter,
+          ...displayFilter,
           state: {
             $in: [
               "CHECKED_IN",
@@ -640,7 +662,7 @@ const resetEventProgress = async (req, res) => {
           },
         }),
         Student.countDocuments({
-          ...activeFilter,
+          ...displayFilter,
           state: {
             $in: [
               "SEAT_ALLOCATED",
@@ -651,17 +673,17 @@ const resetEventProgress = async (req, res) => {
           },
         }),
         Student.countDocuments({
-          ...activeFilter,
+          ...displayFilter,
           state: {
             $in: ["GOWN_ISSUED", "COMPLETED", "CANTEEN_TOKEN_ISSUED"],
           },
         }),
         Student.countDocuments({
-          ...activeFilter,
+          ...displayFilter,
           state: { $in: ["COMPLETED", "CANTEEN_TOKEN_ISSUED"] },
         }),
         Student.countDocuments({
-          ...activeFilter,
+          ...displayFilter,
           state: "CANTEEN_TOKEN_ISSUED",
         }),
       ]);
@@ -669,6 +691,16 @@ const resetEventProgress = async (req, res) => {
       // Invalidate cache since event session reset
       statsCache.invalidate("stats_");
       statsCache.invalidate("deptstats_");
+
+      console.log(`[resetEventProgress] After Reset - Stats Counts:`, {
+        displayFilter: JSON.stringify(displayFilter),
+        total,
+        checkedIn,
+        seatAllocated,
+        gownIssued,
+        completed,
+        canteenTokenIssued,
+      });
 
       emitToAdmins("stats:updated", {
         total,
