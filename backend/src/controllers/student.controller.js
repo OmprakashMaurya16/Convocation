@@ -159,6 +159,14 @@ const eventLogin = async (req, res) => {
       return res.status(404).json({ message: "Student not found" });
     }
 
+    // Check if student is active (reject inactive students)
+    if (student.isActive === false) {
+      return res.status(403).json({
+        message:
+          "Your account has been deactivated. Please contact the administration office.",
+      });
+    }
+
     // If name and department are provided, optionally check them, otherwise skip strict validation
     if (trimmedName && trimmedDepartment) {
       const dbName = String(student.name || "").trim();

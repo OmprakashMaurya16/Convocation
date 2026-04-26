@@ -34,7 +34,7 @@ const seedDatabase = async () => {
     });
 
     // Staff
-    await Staff.insertMany([
+    await Staff.create([
       {
         name: "Entry Staff",
         email: "entry@convocation.com",
