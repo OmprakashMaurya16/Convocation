@@ -248,7 +248,7 @@ const getDepartmentStats = async (req, res) => {
     }
 
     // Define departments in order (UI expects these).
-    const departments = ["INFT", "CMPN", "EXTC", "EXCS", "BIOMD", "MMS"];
+    const departments = ["INFT", "CMPN", "EXTC", "ETRX", "BIOMD", "MMS"];
 
     const rows = await Student.aggregate([
       { $match: displayFilter },

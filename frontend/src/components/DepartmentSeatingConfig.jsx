@@ -6,7 +6,7 @@ export default function DepartmentSeatingConfig({ open, onClose }) {
     "INFT",
     "CMPN",
     "EXTC",
-    "EXCS",
+    "ETRX",
     "BIOMD",
     "MMS",
   ]);

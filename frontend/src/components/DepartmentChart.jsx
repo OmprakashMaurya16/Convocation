@@ -22,7 +22,7 @@ export default function DepartmentChart({ token, refreshKey = 0 }) {
         front: "bg-surface-tint",
         side: "bg-surface-tint",
       },
-      EXCS: {
+      ETRX: {
         front: "bg-tertiary-container",
         side: "bg-tertiary-container",
       },
