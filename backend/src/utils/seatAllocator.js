@@ -38,8 +38,10 @@ const buildSeatIds = (row, count, startNumber = 1) =>
 
 const ALL_SEAT_IDS = [
   ...FRONT_ROWS.flatMap((row) => buildSeatIds(row, 17, 1)),
-  ...SIDE_ROWS.flatMap((row) => buildSeatIds(row, 5, 1)),
-  ...SIDE_ROWS.flatMap((row) => buildSeatIds(row, 5, 13)),
+  ...SIDE_ROWS.flatMap((row) => [
+    ...buildSeatIds(row, 5, 1),
+    ...buildSeatIds(row, 5, 13),
+  ]),
   ...BACK_ROWS.flatMap((row) => buildSeatIds(row, 17, 1)),
 ];
 

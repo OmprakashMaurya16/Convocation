@@ -581,9 +581,43 @@ const getSeatingReport = async (req, res) => {
         { "seat.number": { $ne: null } },
         { "seat.number": { $ne: "" } },
       ],
-    })
-      .select("name studentId department seat state")
-      .sort({ "seat.section": 1, "seat.number": 1, studentId: 1 });
+    }).select("name studentId department seat state");
+
+    // Sort by row (A-R) then by seat number (1-17)
+    const ALL_ROWS = [
+      "A",
+      "B",
+      "C",
+      "D",
+      "E",
+      "F",
+      "G",
+      "H",
+      "I",
+      "J",
+      "K",
+      "L",
+      "M",
+      "N",
+      "O",
+      "P",
+      "Q",
+      "R",
+    ];
+
+    seatedStudents.sort((a, b) => {
+      const sectionA = String(a.seat?.section || "").trim();
+      const sectionB = String(b.seat?.section || "").trim();
+      const numberA = parseInt(String(a.seat?.number || "0").trim(), 10);
+      const numberB = parseInt(String(b.seat?.number || "0").trim(), 10);
+
+      const rowIndexA = ALL_ROWS.indexOf(sectionA);
+      const rowIndexB = ALL_ROWS.indexOf(sectionB);
+
+      if (rowIndexA !== rowIndexB) return rowIndexA - rowIndexB;
+      if (numberA !== numberB) return numberA - numberB;
+      return String(a.studentId || "").localeCompare(String(b.studentId || ""));
+    });
 
     const items = seatedStudents.map((student) => {
       const section = String(student.seat?.section || "").trim();
