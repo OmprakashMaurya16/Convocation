@@ -311,13 +311,15 @@ const resetSeatAllocations = async (req, res) => {
     const activeFilter = buildActiveEventStudentFilter(activeSince);
     const displayFilter = { ...activeFilter, isActive: true };
 
-    // Seat-only reset for CURRENT session:
-    // - Clears seat assignments for active session students
-    // NOTE: SeatOverride documents are PRESERVED (no deletions from DB).
-    // Only the student seat fields are cleared.
-    const clearedSeatsResult = await Student.updateMany(displayFilter, {
+    // Seat reset (DB-wide):
+    // - Clears seat assignments for ALL students (active + inactive)
+    // - Clears SeatOverride documents (reserved/manual markers)
+    // NOTE: Uses $unset (not null) to avoid unique-index collisions.
+    const clearedSeatsResult = await Student.updateMany({}, {
       $unset: { "seat.section": "", "seat.number": "" },
     });
+
+    const clearedOverridesResult = await SeatOverride.deleteMany({});
 
     // Invalidate seat allocator cache to reflect changes immediately
     await invalidateSeatAllocatorCache();
@@ -393,9 +395,9 @@ const resetSeatAllocations = async (req, res) => {
       success: true,
       clearedSeats: clearedSeatsResult?.modifiedCount ?? 0,
       resetToRegistered: 0,
-      clearedOverrides: 0,
+      clearedOverrides: clearedOverridesResult?.deletedCount ?? 0,
       message:
-        "Seats reset successfully. All seat assignments cleared. SeatOverride data preserved.",
+        "Seats reset successfully. All seat assignments and overrides cleared.",
     });
   } catch (error) {
     console.error(error.message);
@@ -407,8 +409,9 @@ const getSeatOccupancy = async (req, res) => {
   try {
     const activeSince = await getActiveEventStartAt();
     const activeFilter = buildActiveEventStudentFilter(activeSince);
+    const displayFilter = { ...activeFilter, isActive: true };
     const seatedStudents = await Student.find({
-      ...activeFilter,
+      ...displayFilter,
       $and: [
         { "seat.section": { $exists: true } },
         { "seat.section": { $ne: null } },
@@ -581,8 +584,9 @@ const getSeatingReport = async (req, res) => {
   try {
     const activeSince = await getActiveEventStartAt();
     const activeFilter = buildActiveEventStudentFilter(activeSince);
+    const displayFilter = { ...activeFilter, isActive: true };
     const seatedStudents = await Student.find({
-      ...activeFilter,
+      ...displayFilter,
       $and: [
         { "seat.section": { $exists: true } },
         { "seat.section": { $ne: null } },
