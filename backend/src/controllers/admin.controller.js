@@ -3,7 +3,10 @@ const ScanLog = require("../models/scanLog.model.js");
 const SeatOverride = require("../models/seatOverride.model.js");
 const DepartmentConfig = require("../models/departmentConfig.model.js");
 const statsCache = require("../utils/statsCache.js");
-const { ALL_SEAT_IDS } = require("../utils/seatAllocator.js");
+const {
+  ALL_SEAT_IDS,
+  invalidateSeatAllocatorCache,
+} = require("../utils/seatAllocator.js");
 const { getIO, emitToAdmins } = require("../socket.js");
 const {
   getActiveEventStartAt,
@@ -310,12 +313,17 @@ const resetSeatAllocations = async (req, res) => {
 
     // Seat-only reset for CURRENT session:
     // - Clears seat assignments for active session students
-    // NOTE: Overrides are preserved (no deletions).
+    // NOTE: SeatOverride documents are PRESERVED (no deletions from DB).
+    // Only the student seat fields are cleared.
     const clearedSeatsResult = await Student.updateMany(displayFilter, {
-      $unset: { seat: "" },
+      $unset: { "seat.section": "", "seat.number": "" },
     });
 
+    // Invalidate seat allocator cache to reflect changes immediately
+    await invalidateSeatAllocatorCache();
+
     if (getIO()) {
+      // Emit refresh signal to all admins
       emitToAdmins("seating:refresh", { reason: "reset" });
 
       const [
@@ -386,6 +394,8 @@ const resetSeatAllocations = async (req, res) => {
       clearedSeats: clearedSeatsResult?.modifiedCount ?? 0,
       resetToRegistered: 0,
       clearedOverrides: 0,
+      message:
+        "Seats reset successfully. All seat assignments cleared. SeatOverride data preserved.",
     });
   } catch (error) {
     console.error(error.message);

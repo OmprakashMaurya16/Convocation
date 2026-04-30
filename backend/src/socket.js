@@ -36,7 +36,10 @@ const initSocket = (httpServer) => {
       console.log("Socket user:", socket.user);
       if (socket.user?.role === "ADMIN") {
         socket.join(ADMIN_ROOM);
-        console.log("Admin socket joined ADMIN_ROOM. Room members:", io.sockets.adapter.rooms.get(ADMIN_ROOM)?.size || 0);
+        console.log(
+          "Admin socket joined ADMIN_ROOM. Room members:",
+          io.sockets.adapter.rooms.get(ADMIN_ROOM)?.size || 0,
+        );
         socket.emit("admin:subscribed", { ok: true });
       } else {
         console.warn("Non-admin tried to subscribe:", socket.user);
