@@ -52,21 +52,6 @@ const studentSchema = new mongoose.Schema(
       },
     },
 
-    gown: {
-      size: {
-        type: String,
-        enum: ["S", "M", "L"],
-      },
-      issued: {
-        type: Boolean,
-        default: false,
-      },
-      returned: {
-        type: Boolean,
-        default: false,
-      },
-    },
-
     canteenToken: {
       issued: {
         type: Boolean,

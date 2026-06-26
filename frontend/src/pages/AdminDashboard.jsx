@@ -11,6 +11,7 @@ import {
 } from "../components";
 import SeatingArchitecture from "./SeatingArchitecture";
 import CandidateLedger from "./CandidateLedger";
+import StudentManager from "./StudentManager";
 import { apiRequest, clearAuthSession, getAuthSession } from "../utils/api";
 import { createSocketClient } from "../utils/socket";
 
@@ -227,6 +228,23 @@ export default function AdminDashboard() {
           setOpen={setSidebarOpen}
         />
         <CandidateLedger
+          onMenuClick={() => setSidebarOpen(!sidebarOpen)}
+          onLogout={handleLogout}
+        />
+      </div>
+    );
+  }
+
+  if (activePage === "students") {
+    return (
+      <div className="relative flex h-auto min-h-screen w-full flex-col md:flex-row bg-surface overflow-x-hidden">
+        <Sidebar
+          activeItem={activePage}
+          setActiveItem={setActivePage}
+          open={sidebarOpen}
+          setOpen={setSidebarOpen}
+        />
+        <StudentManager
           onMenuClick={() => setSidebarOpen(!sidebarOpen)}
           onLogout={handleLogout}
         />

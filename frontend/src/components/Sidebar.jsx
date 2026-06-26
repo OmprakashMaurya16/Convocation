@@ -8,6 +8,7 @@ export default function Sidebar({
     { id: "dashboard", label: "Dashboard", icon: "dashboard" },
     { id: "candidate", label: "Candidate Ledger", icon: "school" },
     { id: "seating", label: "Seating Architecture", icon: "event_seat" },
+    { id: "students", label: "Students", icon: "person_search" },
   ];
 
   const handleMenuClick = (id) => {

@@ -26,13 +26,13 @@ const seedOneStudent = async () => {
 
     // Create student registered for current active event (appears on dashboard immediately)
     const student = new Student({
-      name: "Vedant Jadhav",
-      studentId: "22103B2008",
-      department: "ETRX",
+      name: "Ankur Sharma",
+      studentId: "21101B0036",
+      department: "INFT",
       phone: "",
       email: "",
       company: "",
-      qrToken: generateQRToken("22103B2008"),
+      qrToken: generateQRToken("21101B0036"),
       state: "REGISTERED",
       isActive: true,
       event: {

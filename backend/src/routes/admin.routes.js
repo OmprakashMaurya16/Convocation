@@ -14,6 +14,8 @@ const {
   getDepartmentConfigs,
   setDepartmentConfig,
   getAllSeats,
+  searchStudents,
+  createStudent,
 } = require("../controllers/admin.controller.js");
 const { allowRoles } = require("../middlewares/role.middleware.js");
 
@@ -43,5 +45,8 @@ router.get("/seating-report", protect, allowRoles("ADMIN"), getSeatingReport);
 router.get("/department-configs", protect, allowRoles("ADMIN"), getDepartmentConfigs);
 router.post("/department-configs", protect, allowRoles("ADMIN"), setDepartmentConfig);
 router.get("/all-seats", protect, allowRoles("ADMIN"), getAllSeats);
+
+router.get("/students/search", protect, allowRoles("ADMIN"), searchStudents);
+router.post("/students", protect, allowRoles("ADMIN"), createStudent);
 
 module.exports = router;

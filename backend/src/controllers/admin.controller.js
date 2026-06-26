@@ -315,9 +315,12 @@ const resetSeatAllocations = async (req, res) => {
     // - Clears seat assignments for ALL students (active + inactive)
     // - Clears SeatOverride documents (reserved/manual markers)
     // NOTE: Uses $unset (not null) to avoid unique-index collisions.
-    const clearedSeatsResult = await Student.updateMany({}, {
-      $unset: { "seat.section": "", "seat.number": "" },
-    });
+    const clearedSeatsResult = await Student.updateMany(
+      {},
+      {
+        $unset: { "seat.section": "", "seat.number": "" },
+      },
+    );
 
     const clearedOverridesResult = await SeatOverride.deleteMany({});
 
@@ -831,6 +834,148 @@ const getAllSeats = (req, res) => {
   res.json({ seats: ALL_SEAT_IDS });
 };
 
+const searchStudents = async (req, res) => {
+  try {
+    const q = (req.query.q || "").trim();
+    const department = req.query.department || "ALL";
+    const limit = Math.min(50, Math.max(1, Number.parseInt(req.query.limit || "20", 10)));
+
+    if (!q) {
+      return res.json({ items: [], total: 0 });
+    }
+
+    const filter = { isActive: true };
+
+    // Match by name (case-insensitive) or studentId prefix
+    const isIdLike = /^[A-Za-z0-9]+$/.test(q);
+    filter.$or = [
+      { name: { $regex: q, $options: "i" } },
+      ...(isIdLike ? [{ studentId: { $regex: q, $options: "i" } }] : []),
+    ];
+
+    if (department !== "ALL") {
+      filter.department = department;
+    }
+
+    const students = await Student.find(filter)
+      .sort({ name: 1 })
+      .limit(limit)
+      .select("name studentId department state seat qrToken");
+
+    const items = students.map((s) => ({
+      id: s.studentId,
+      name: s.name,
+      studentId: s.studentId,
+      department: s.department || "N/A",
+      state: s.state,
+      qrToken: s.qrToken,
+      seat:
+        s.seat?.section && s.seat?.number
+          ? `${s.seat.section}-${s.seat.number}`
+          : "—",
+    }));
+
+    res.json({ items, total: items.length });
+  } catch (error) {
+    console.error("searchStudents error:", error.message);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+const createStudent = async (req, res) => {
+  try {
+    const { name, studentId, department, phone } = req.body || {};
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ message: "Name is required" });
+    }
+    if (!studentId || !studentId.trim()) {
+      return res.status(400).json({ message: "Student ID is required" });
+    }
+    if (!department || !department.trim()) {
+      return res.status(400).json({ message: "Department is required" });
+    }
+
+    const existing = await Student.findOne({ studentId: studentId.trim() });
+    if (existing) {
+      return res.status(409).json({ message: `Student ID '${studentId.trim()}' already exists` });
+    }
+
+    const crypto = require("crypto");
+    const qrToken = `QR-${studentId.trim()}-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
+
+    const student = new Student({
+      name: name.trim(),
+      studentId: studentId.trim(),
+      department: department.trim().toUpperCase(),
+      phone: phone?.trim() || undefined,
+      qrToken,
+      state: "REGISTERED",
+      isActive: true,
+    });
+
+    await student.save();
+
+    // ── Real-time: broadcast new student to all admin sessions ──────────────
+    const payload = {
+      id: student.studentId,
+      name: student.name,
+      studentId: student.studentId,
+      department: student.department,
+      state: student.state,
+      qrToken: student.qrToken,
+    };
+
+    // Emit the new student record so live lists update instantly
+    emitToAdmins("student:created", payload);
+
+    // Re-tally total and emit updated stats so Dashboard counts tick up
+    try {
+      const activeSince = await getActiveEventStartAt();
+      const activeFilter = buildActiveEventStudentFilter(activeSince);
+      const displayFilter = { ...activeFilter, isActive: true };
+
+      const [total, checkedIn, seatAllocated, gownIssued, completed, canteenTokenIssued] =
+        await Promise.all([
+          Student.countDocuments(displayFilter),
+          Student.countDocuments({
+            ...displayFilter,
+            state: { $in: ["CHECKED_IN", "SEAT_ALLOCATED", "GOWN_ISSUED", "COMPLETED", "CANTEEN_TOKEN_ISSUED"] },
+          }),
+          Student.countDocuments({
+            ...displayFilter,
+            state: { $in: ["SEAT_ALLOCATED", "GOWN_ISSUED", "COMPLETED", "CANTEEN_TOKEN_ISSUED"] },
+          }),
+          Student.countDocuments({
+            ...displayFilter,
+            state: { $in: ["GOWN_ISSUED", "COMPLETED", "CANTEEN_TOKEN_ISSUED"] },
+          }),
+          Student.countDocuments({
+            ...displayFilter,
+            state: { $in: ["COMPLETED", "CANTEEN_TOKEN_ISSUED"] },
+          }),
+          Student.countDocuments({ ...displayFilter, state: "CANTEEN_TOKEN_ISSUED" }),
+        ]);
+
+      statsCache.invalidate("stats_");
+      emitToAdmins("stats:updated", { total, checkedIn, seatAllocated, gownIssued, completed, canteenTokenIssued });
+      emitToAdmins("department-stats:refresh", { ok: true });
+    } catch (statsErr) {
+      console.error("createStudent: failed to emit stats update:", statsErr.message);
+    }
+    // ────────────────────────────────────────────────────────────────────────
+
+    res.status(201).json({ success: true, student: payload });
+  } catch (error) {
+    console.error("createStudent error:", error.message);
+    if (error.code === 11000) {
+      return res.status(409).json({ message: "Student ID or QR Token already exists" });
+    }
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
 module.exports = {
   getStats,
   getRecentScans,
@@ -845,4 +990,6 @@ module.exports = {
   getDepartmentConfigs,
   setDepartmentConfig,
   getAllSeats,
+  searchStudents,
+  createStudent,
 };
