@@ -19,7 +19,7 @@ const getStudentByQR = async (req, res) => {
       displayFilter,
     );
 
-    // Try to find by qrToken first, then by studentId (case-insensitive)
+
     let student = await Student.findOne({ ...displayFilter, qrToken });
 
     if (!student) {
@@ -30,11 +30,11 @@ const getStudentByQR = async (req, res) => {
     }
 
     if (!student) {
-      console.warn(`[getStudentByQR] ⚠️ Student not found: ${qrToken}`);
+      console.warn(`[getStudentByQR] ️ Student not found: ${qrToken}`);
       return res.status(404).json({ message: "Student not found" });
     }
 
-    console.log(`[getStudentByQR] ✅ Found student:`, {
+    console.log(`[getStudentByQR]  Found student:`, {
       studentId: student.studentId,
       state: student.state,
       seat: student.seat,
@@ -58,10 +58,7 @@ const getStudentByQR = async (req, res) => {
   }
 };
 
-/**
- * PATCH /api/student/:qrToken/profile
- * Called on student login to save/update mobile and company details.
- */
+
 const updateStudentProfile = async (req, res) => {
   try {
     const { qrToken } = req.params;
@@ -71,7 +68,7 @@ const updateStudentProfile = async (req, res) => {
     const activeFilter = buildActiveEventStudentFilter(activeSince);
     const displayFilter = { ...activeFilter, isActive: true };
 
-    // Find student by qrToken or studentId (case-insensitive)
+
     let student = await Student.findOne({ ...displayFilter, qrToken });
     if (!student) {
       student = await Student.findOne({
@@ -84,7 +81,7 @@ const updateStudentProfile = async (req, res) => {
       return res.status(404).json({ message: "Student not found" });
     }
 
-    // Only update fields that were provided
+
     if (phone !== undefined && phone !== null) {
       student.phone = String(phone).trim();
     }
@@ -106,13 +103,7 @@ const updateStudentProfile = async (req, res) => {
   }
 };
 
-/**
- * POST /api/student/:qrToken/event-login
- * During-event student sign-in:
- * - Verifies studentId exists in DB
- * - Confirms name + department match pre-event DB record
- * - Stores phone + company
- */
+
 const eventLogin = async (req, res) => {
   try {
     const { qrToken } = req.params;
@@ -139,7 +130,7 @@ const eventLogin = async (req, res) => {
       });
     }
 
-    // Validate phone is exactly 10 digits
+
     const phoneDigits = trimmedPhone.replace(/\D/g, "");
     if (phoneDigits.length !== 10) {
       return res.status(400).json({
@@ -147,7 +138,7 @@ const eventLogin = async (req, res) => {
       });
     }
 
-    // Find student by qrToken or studentId (case-insensitive for studentId)
+
     let student = await Student.findOne({ qrToken });
     if (!student) {
       student = await Student.findOne({
@@ -159,7 +150,7 @@ const eventLogin = async (req, res) => {
       return res.status(404).json({ message: "Student not found" });
     }
 
-    // Check if student is active (reject inactive students)
+
     if (student.isActive === false) {
       return res.status(403).json({
         message:
@@ -167,7 +158,7 @@ const eventLogin = async (req, res) => {
       });
     }
 
-    // If name and department are provided, optionally check them, otherwise skip strict validation
+
     if (trimmedName && trimmedDepartment) {
       const dbName = String(student.name || "").trim();
       const dbDepartment = String(student.department || "").trim();
@@ -214,10 +205,10 @@ const eventLogin = async (req, res) => {
     console.log(`[eventLogin] activeSessionKey: ${activeSessionKey}`);
     console.log(`[eventLogin] isValidActiveEvent: ${isValidActiveEvent}`);
 
-    // THREE distinct cases:
-    // 1. First ever login (no sessionKey) → Initialize
-    // 2. Transitioning to NEW event (sessionKey differs) → Reset
-    // 3. Re-login to SAME session (sessionKey matches) → Preserve
+
+
+
+
 
     const hasNoSessionKeyYet = !currentSessionKey;
     const isTransitioningToNewEvent =
@@ -229,7 +220,7 @@ const eventLogin = async (req, res) => {
     );
 
     if (hasNoSessionKeyYet) {
-      // Case 1: FIRST EVER LOGIN - Initialize as REGISTERED
+
       console.log(`[eventLogin] Case 1: FIRST LOGIN - initializing`);
       student.state = "REGISTERED";
       student.isActive = true;
@@ -248,13 +239,13 @@ const eventLogin = async (req, res) => {
         canteenTokenIssuedAt: null,
       };
 
-      // ALWAYS set sessionKey on first login (regardless of event validity)
+
       student.event = {
         sessionKey: activeSessionKey, // ← ALWAYS SET, even if epoch
         registeredAt: now,
       };
     } else if (isTransitioningToNewEvent) {
-      // Case 2: NEW EVENT SESSION - Reset progress
+
       console.log(`[eventLogin] Case 2: NEW EVENT - resetting state`);
       student.state = "REGISTERED";
       student.isActive = true;
@@ -273,14 +264,14 @@ const eventLogin = async (req, res) => {
         canteenTokenIssuedAt: null,
       };
 
-      // ALWAYS set sessionKey (regardless of event validity)
+
       student.event = {
         sessionKey: activeSessionKey, // ← ALWAYS SET, even if epoch
         registeredAt: now,
       };
     } else {
-      // Case 3: RE-LOGIN TO SAME SESSION - PRESERVE state completely!
-      // Just ensure sessionKey is set (no changes to state/seat/gown/timestamps)
+
+
       console.log(`[eventLogin] Case 3: SAME SESSION - preserving state`);
       student.isActive = true;
       student.event = {
@@ -299,18 +290,18 @@ const eventLogin = async (req, res) => {
     student.phone = trimmedPhone;
     student.company = trimmedCompany;
 
-    // Mark event object as modified so Mongoose knows to save it
+
     student.markModified("event");
 
-    // SAVE TO DATABASE
+
     try {
       await student.save();
       console.log(
-        `[eventLogin] ✅ Saved student to DB - sessionKey: ${student.event?.sessionKey}, state: ${student.state}`,
+        `[eventLogin]  Saved student to DB - sessionKey: ${student.event?.sessionKey}, state: ${student.state}`,
       );
     } catch (saveError) {
       console.error(
-        `[eventLogin] ❌ FAILED TO SAVE student: ${student.studentId}`,
+        `[eventLogin]  FAILED TO SAVE student: ${student.studentId}`,
         saveError,
       );
       return res.status(500).json({
@@ -320,7 +311,7 @@ const eventLogin = async (req, res) => {
       });
     }
 
-    // Real-time updates
+
     emitToStudent(student.studentId, "student:updated", {
       studentId: student.studentId,
       qrToken: student.qrToken,
@@ -396,7 +387,7 @@ const eventLogin = async (req, res) => {
       }),
     ]);
 
-    // Invalidate stats cache since new student added
+
     statsCache.invalidate("stats_");
 
     console.log(`[eventLogin] Stats Counts:`, {
@@ -408,7 +399,7 @@ const eventLogin = async (req, res) => {
       canteenTokenIssued,
     });
 
-    // Verify student was saved correctly
+
     const verifySaved = await Student.findOne({
       qrToken: student.qrToken,
     }).select("isActive event.sessionKey state");

@@ -33,8 +33,6 @@ const getStats = async (req, res) => {
 
     const total = await Student.countDocuments(displayFilter);
 
-    // Cumulative stage counters (monotonic): once a candidate progresses,
-    // they are still considered checked-in for ops reporting.
     const checkedIn = await Student.countDocuments({
       ...displayFilter,
       state: {
@@ -100,10 +98,9 @@ const getRecentScans = async (req, res) => {
       .populate({
         path: "studentId",
         select: "name qrToken studentId department state",
-        strictPopulate: false, // Continue even if ref doesn't exist
+        strictPopulate: false,
       });
 
-    // Build scans with fallback handling
     const scans = await Promise.all(
       logs.map(async (log) => {
         let studentName = "Unknown";
@@ -111,15 +108,12 @@ const getRecentScans = async (req, res) => {
         let department = "N/A";
 
         if (log.studentId) {
-          // Populate worked
           studentName = log.studentId.name || "Unknown";
           studentId = log.studentId.studentId || "N/A";
           department = log.studentId.department || "N/A";
         } else if (log.studentId && typeof log.studentId === "object") {
-          // Already populated but null
           console.warn("StudentId populated but null for log:", log._id);
         } else {
-          // Fallback: try to fetch directly if populate failed
           const student = await Student.findById(log.studentId).select(
             "name studentId department",
           );
@@ -250,7 +244,6 @@ const getDepartmentStats = async (req, res) => {
       return res.json(cached);
     }
 
-    // Define departments in order (UI expects these).
     const departments = ["INFT", "CMPN", "EXTC", "ETRX", "BIOMD", "MMS"];
 
     const rows = await Student.aggregate([
@@ -311,10 +304,6 @@ const resetSeatAllocations = async (req, res) => {
     const activeFilter = buildActiveEventStudentFilter(activeSince);
     const displayFilter = { ...activeFilter, isActive: true };
 
-    // Seat reset (DB-wide):
-    // - Clears seat assignments for ALL students (active + inactive)
-    // - Clears SeatOverride documents (reserved/manual markers)
-    // NOTE: Uses $unset (not null) to avoid unique-index collisions.
     const clearedSeatsResult = await Student.updateMany(
       {},
       {
@@ -324,11 +313,9 @@ const resetSeatAllocations = async (req, res) => {
 
     const clearedOverridesResult = await SeatOverride.deleteMany({});
 
-    // Invalidate seat allocator cache to reflect changes immediately
     await invalidateSeatAllocatorCache();
 
     if (getIO()) {
-      // Emit refresh signal to all admins
       emitToAdmins("seating:refresh", { reason: "reset" });
 
       const [
@@ -379,7 +366,6 @@ const resetSeatAllocations = async (req, res) => {
         }),
       ]);
 
-      // Invalidate cache since event reset
       statsCache.invalidate("stats_");
       statsCache.invalidate("deptstats_");
 
@@ -482,7 +468,6 @@ const getSeatOccupancy = async (req, res) => {
       seatStatusById[seatId] = status;
     }
 
-    // Pending assignments should NOT look like occupied (green) until seating is confirmed.
     for (const seatId of uniquePending) {
       const key = String(seatId);
       if (seatStatusById[key] === "manual") continue;
@@ -490,7 +475,6 @@ const getSeatOccupancy = async (req, res) => {
       seatStatusById[key] = "reserved";
     }
 
-    // Confirmed seating always overrides overrides.
     for (const seatId of uniqueConfirmed) {
       seatStatusById[String(seatId)] = "occupied";
     }
@@ -600,7 +584,6 @@ const getSeatingReport = async (req, res) => {
       ],
     }).select("name studentId department seat state");
 
-    // Sort by row (A-R) then by seat number (1-17)
     const ALL_ROWS = [
       "A",
       "B",
@@ -663,10 +646,6 @@ const getSeatingReport = async (req, res) => {
 
 const resetEventProgress = async (req, res) => {
   try {
-    // Start a NEW session cutoff. Previous members remain stored in DB,
-    // but are excluded from the active event views.
-
-    // BEFORE reset: Deactivate all currently active students
     const currentActiveSince = await getActiveEventStartAt();
     const currentActiveFilter =
       buildActiveEventStudentFilter(currentActiveSince);
@@ -679,7 +658,6 @@ const resetEventProgress = async (req, res) => {
       `[resetEventProgress] Deactivated ${deactivateResult.modifiedCount} students`,
     );
 
-    // NOW create the new session
     const requestedLabel = req?.body?.label;
     const { activeSince, label } = await setActiveEventSession({
       activeSince: new Date(),
@@ -739,7 +717,6 @@ const resetEventProgress = async (req, res) => {
         }),
       ]);
 
-      // Invalidate cache since event session reset
       statsCache.invalidate("stats_");
       statsCache.invalidate("deptstats_");
 
@@ -846,7 +823,6 @@ const searchStudents = async (req, res) => {
 
     const filter = { isActive: true };
 
-    // Match by name (case-insensitive) or studentId prefix
     const isIdLike = /^[A-Za-z0-9]+$/.test(q);
     filter.$or = [
       { name: { $regex: q, $options: "i" } },
@@ -860,13 +836,14 @@ const searchStudents = async (req, res) => {
     const students = await Student.find(filter)
       .sort({ name: 1 })
       .limit(limit)
-      .select("name studentId department state seat qrToken");
+      .select("name studentId department convocationYear state seat qrToken");
 
     const items = students.map((s) => ({
       id: s.studentId,
       name: s.name,
       studentId: s.studentId,
       department: s.department || "N/A",
+      convocationYear: s.convocationYear || null,
       state: s.state,
       qrToken: s.qrToken,
       seat:
@@ -884,16 +861,10 @@ const searchStudents = async (req, res) => {
 
 const createStudent = async (req, res) => {
   try {
-    const { name, studentId, department, phone } = req.body || {};
+    const { name, studentId, department, phone, convocationYear } = req.body;
 
-    if (!name || !name.trim()) {
-      return res.status(400).json({ message: "Name is required" });
-    }
-    if (!studentId || !studentId.trim()) {
-      return res.status(400).json({ message: "Student ID is required" });
-    }
-    if (!department || !department.trim()) {
-      return res.status(400).json({ message: "Department is required" });
+    if (!name || !studentId || !department) {
+      return res.status(400).json({ message: "Missing required fields" });
     }
 
     const existing = await Student.findOne({ studentId: studentId.trim() });
@@ -908,6 +879,7 @@ const createStudent = async (req, res) => {
       name: name.trim(),
       studentId: studentId.trim(),
       department: department.trim().toUpperCase(),
+      convocationYear: convocationYear?.trim() || null,
       phone: phone?.trim() || undefined,
       qrToken,
       state: "REGISTERED",
@@ -916,20 +888,18 @@ const createStudent = async (req, res) => {
 
     await student.save();
 
-    // ── Real-time: broadcast new student to all admin sessions ──────────────
     const payload = {
       id: student.studentId,
       name: student.name,
       studentId: student.studentId,
       department: student.department,
+      convocationYear: student.convocationYear,
       state: student.state,
       qrToken: student.qrToken,
     };
 
-    // Emit the new student record so live lists update instantly
     emitToAdmins("student:created", payload);
 
-    // Re-tally total and emit updated stats so Dashboard counts tick up
     try {
       const activeSince = await getActiveEventStartAt();
       const activeFilter = buildActiveEventStudentFilter(activeSince);
@@ -963,7 +933,6 @@ const createStudent = async (req, res) => {
     } catch (statsErr) {
       console.error("createStudent: failed to emit stats update:", statsErr.message);
     }
-    // ────────────────────────────────────────────────────────────────────────
 
     res.status(201).json({ success: true, student: payload });
   } catch (error) {
@@ -975,6 +944,233 @@ const createStudent = async (req, res) => {
   }
 };
 
+const bulkUploadStudents = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    const { convocationYear } = req.body;
+
+    const mime = req.file.mimetype;
+    const originalName = req.file.originalname.toLowerCase();
+    const buffer = req.file.buffer;
+
+    const crypto = require("crypto");
+    const generateQRToken = (id) =>
+      `QR-${id}-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
+
+    let rows = [];
+
+    if (
+      mime === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+      mime === "application/vnd.ms-excel" ||
+      originalName.endsWith(".xlsx") ||
+      originalName.endsWith(".xls")
+    ) {
+      const xlsx = require("xlsx");
+      const workbook = xlsx.read(buffer, { type: "buffer" });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const aoa = xlsx.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+
+      let currentDepartment = "GENERAL";
+
+      for (const row of aoa) {
+        if (!Array.isArray(row)) continue;
+        
+        let name = "", studentId = "", department = currentDepartment, phone = "";
+        
+        for (const cell of row) {
+          const val = String(cell).trim();
+          if (!val) continue;
+          
+
+          if (/^(ETRX|EXTC|INFT|CMPN|BIOMD|MMS|CS|IT|EC|EE|ME|CE)$/i.test(val)) {
+            department = val.toUpperCase();
+            currentDepartment = department;
+          }
+
+          else if (/^\d{10}$/.test(val)) {
+            if (!studentId) studentId = val;
+            else phone = val;
+          }
+
+          else if (/^[A-Za-z0-9]{5,15}$/.test(val) && /\d/.test(val)) {
+            studentId = val;
+          }
+
+          else if (/^[A-Za-z\s\.]{3,50}$/.test(val)) {
+            const lower = val.toLowerCase();
+
+            if (!/name|student|candidate|full name/.test(lower)) {
+              if (name.length < val.length) name = val;
+            }
+          }
+        }
+        
+        if (name && studentId && name.length > 2) {
+          rows.push({ name, studentId, department, phone });
+        }
+      }
+    } else if (mime === "application/pdf" || originalName.endsWith(".pdf")) {
+      const pdfParse = require("pdf-parse");
+      let text = "";
+      if (typeof pdfParse === "function") {
+        const data = await pdfParse(buffer);
+        text = data.text;
+      } else if (pdfParse.PDFParse) {
+        const parser = new pdfParse.PDFParse(new Uint8Array(buffer));
+        const data = await parser.getText();
+        text = data.text;
+      } else {
+        throw new Error("Unable to initialize PDF parser.");
+      }
+
+      const lines = text
+        .split(/\n/)
+        .map((l) => l.trim())
+        .filter(Boolean);
+
+      let currentDepartment = "GENERAL";
+
+      for (const line of lines) {
+        const deptMatch = line.match(/\b(ETRX|EXTC|INFT|CMPN|BIOMD|MMS|CS|IT|EC|EE|ME|CE)\b/i);
+        if (deptMatch) {
+          currentDepartment = deptMatch[1].toUpperCase();
+        }
+
+        if (/name|student.*id|roll|dept|sr\s*no/i.test(line)) continue;
+
+        let parts = line.split(/[\t\|,]+|\s+/).map((p) => p.trim()).filter(Boolean);
+
+        let name = "", studentId = "", department = currentDepartment, phone = "";
+
+        for (const val of parts) {
+          if (!val) continue;
+
+          if (/^(ETRX|EXTC|INFT|CMPN|BIOMD|MMS|CS|IT|EC|EE|ME|CE)$/i.test(val)) {
+            department = val.toUpperCase();
+            currentDepartment = department;
+          }
+
+          else if (/^\d{8,12}$/.test(val)) {
+            if (!studentId) studentId = val;
+            else phone = val;
+          }
+
+          else if (/^[A-Za-z0-9]{5,15}$/.test(val) && /\d/.test(val)) {
+            studentId = val;
+          }
+
+          else if (/^[A-Za-z\.]{2,30}$/.test(val)) {
+            const lower = val.toLowerCase();
+            if (!/name|student|candidate/.test(lower)) {
+              name = name ? name + " " + val : val;
+            }
+          }
+        }
+
+        if (name && studentId && name.length > 2) {
+          rows.push({ name, studentId, department, phone });
+        }
+      }
+    } else {
+      return res.status(400).json({ message: "Unsupported file type. Upload an Excel (.xlsx/.xls) or PDF file." });
+    }
+
+    if (rows.length === 0) {
+      return res.status(400).json({
+        message: "No valid student records found in the file. Make sure columns include Name, Student ID, and Department.",
+      });
+    }
+
+    const seen = new Set();
+    rows = rows.filter((r) => {
+      if (seen.has(r.studentId)) return false;
+      seen.add(r.studentId);
+      return true;
+    });
+
+    const ids = rows.map((r) => r.studentId);
+    const existing = await Student.find({ studentId: { $in: ids } }, { studentId: 1 }).lean();
+    const existingIds = new Set(existing.map((e) => e.studentId));
+
+    const toInsert = rows.filter((r) => !existingIds.has(r.studentId));
+    const skipped = rows.filter((r) => existingIds.has(r.studentId));
+
+    let inserted = [];
+    if (toInsert.length > 0) {
+      const docs = toInsert.map((r) => ({
+        name: r.name,
+        studentId: r.studentId,
+        department: r.department.trim().toUpperCase(),
+        convocationYear: convocationYear || null,
+        phone: r.phone || undefined,
+        qrToken: generateQRToken(r.studentId),
+        state: "REGISTERED",
+        isActive: true,
+      }));
+
+      const result = await Student.insertMany(docs, { ordered: false });
+      inserted = result;
+    }
+
+    try {
+      statsCache.invalidate("stats_");
+      emitToAdmins("department-stats:refresh", { ok: true });
+    } catch (_) {}
+
+    res.status(201).json({
+      success: true,
+      inserted: inserted.length,
+      skipped: skipped.length,
+      skippedIds: skipped.map((s) => s.studentId),
+      total: rows.length,
+    });
+  } catch (error) {
+    console.error("bulkUploadStudents error:", error);
+    res.status(500).json({ message: "Server error during bulk upload" });
+  }
+};
+
+const getAttendanceReport = async (req, res) => {
+  try {
+    const { convocationYear, department } = req.query;
+    if (!convocationYear || !convocationYear.trim()) {
+      return res.status(400).json({ message: "Convocation Year is required" });
+    }
+
+    const filter = {
+      convocationYear: convocationYear.trim(),
+      state: { $ne: "REGISTERED" },
+    };
+
+    if (department && department !== "ALL") {
+      filter.department = department.trim();
+    }
+
+    const students = await Student.find(filter)
+      .select("name studentId department state")
+      .sort({ department: 1, studentId: 1 })
+      .lean();
+
+    res.json({ students });
+  } catch (error) {
+    console.error("getAttendanceReport error:", error.message);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+const getConvocationYears = async (req, res) => {
+  try {
+    const years = await Student.distinct("convocationYear", { convocationYear: { $ne: null } });
+    res.json({ years: years.sort() });
+  } catch (error) {
+    console.error("getConvocationYears error:", error.message);
+    res.status(500).json({ message: "Server error" });
+  }
+};
 
 module.exports = {
   getStats,
@@ -992,4 +1188,7 @@ module.exports = {
   getAllSeats,
   searchStudents,
   createStudent,
+  bulkUploadStudents,
+  getAttendanceReport,
+  getConvocationYears,
 };

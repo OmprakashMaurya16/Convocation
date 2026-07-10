@@ -25,12 +25,7 @@ const STAGE_METADATA = {
   CANTEEN_TOKEN_ISSUED: { label: "Canteen Token", icon: "restaurant" },
 };
 
-/**
- * Returns the "Current Action" instruction shown on the student dashboard.
- * @param {string} state - student's current state
- * @param {string} seatSection - seat row letter, e.g. "A"
- * @param {string} seatNumber  - seat number, e.g. "12"
- */
+
 const getCurrentAction = (state, seatSection, seatNumber) => {
   const hasSeat =
     seatSection && seatSection !== "-" && seatNumber && seatNumber !== "-";
@@ -50,7 +45,7 @@ const getCurrentAction = (state, seatSection, seatNumber) => {
     case "COMPLETED":
       return "Your gown has been successfully returned. You may now proceed to the food counter.";
     case "CANTEEN_TOKEN_ISSUED":
-      return "🎉 Congratulations, Graduate! Enjoy your meal and have a wonderful celebration!";
+      return " Congratulations, Graduate! Enjoy your meal and have a wonderful celebration!";
     default:
       return "Please follow instructions from the event staff.";
   }
@@ -59,7 +54,7 @@ const getCurrentAction = (state, seatSection, seatNumber) => {
 export default function StudentDashboard() {
   const navigate = useNavigate();
   const studentSession = useMemo(() => getStudentSession(), []);
-  // Removed bottom nav state
+
   const [student, setStudent] = useState(null);
   const [error, setError] = useState("");
 
@@ -91,7 +86,7 @@ export default function StudentDashboard() {
 
     fetchStudent();
 
-    // Real-time updates via Socket.io
+
     const socket = createSocketClient();
 
     socket.on("connect", () => {
@@ -99,7 +94,7 @@ export default function StudentDashboard() {
       socket.emit("student:subscribe", { studentId: qrToken });
     });
 
-    // Listen for state updates
+
     socket.on("student:updated", (updatedData) => {
       if (
         updatedData.studentId === qrToken ||
@@ -109,7 +104,7 @@ export default function StudentDashboard() {
       }
     });
 
-    // Listen for scan events (server emits student-targeted refresh events)
+
     socket.on("scan:created", () => {
       fetchStudent();
     });
@@ -153,7 +148,7 @@ export default function StudentDashboard() {
 
   return (
     <div className="flex flex-col min-h-screen bg-surface">
-      {/* Responsive Title Bar - Always Row */}
+      {}
       <div className="w-full py-4 sm:py-5 md:py-6 px-6 bg-[#002547] shadow-lg flex flex-row items-center justify-between gap-4 z-50">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/10 flex items-center justify-center border border-white/20">
@@ -173,9 +168,9 @@ export default function StudentDashboard() {
         </button>
       </div>
 
-      {/* Main Content */}
+      {}
       <main className="flex-1 w-full max-w-6xl mx-auto px-4 md:px-6 pt-4 md:pt-8 pb-8 md:pb-8 space-y-6 md:space-y-8">
-        {/* Profile Header Section */}
+        {}
         <section className="flex flex-col items-center text-center space-y-2 md:space-y-3">
           <h2 className="font-headline font-extrabold text-2xl md:text-4xl lg:text-5xl tracking-tight text-primary">
             {studentName}
@@ -196,7 +191,7 @@ export default function StudentDashboard() {
           </section>
         ) : null}
 
-        {/* QR Code Section */}
+        {}
         <section className="bg-surface-container-lowest rounded-lg md:rounded-xl p-6 md:p-8 flex flex-col items-center shadow-sm relative overflow-hidden">
           <div
             className="absolute top-0 left-0 w-1 h-full"
@@ -218,7 +213,7 @@ export default function StudentDashboard() {
           </p>
         </section>
 
-        {/* Seat Details Card */}
+        {}
         <section className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
           <div className="bg-surface-container-highest rounded-lg md:rounded-xl p-4 md:p-5 flex flex-col justify-center items-center lg:col-span-2">
             <span className="font-label text-xs md:text-sm uppercase tracking-widest text-on-secondary-container font-bold mb-1 md:mb-2">
@@ -238,7 +233,7 @@ export default function StudentDashboard() {
           </div>
         </section>
 
-        {/* Status Tracker Section */}
+        {}
         <section className="bg-white rounded-xl md:rounded-2xl p-6 md:p-10 shadow-lg shadow-blue-900/5 border border-blue-50/50">
           <div className="flex items-center justify-between mb-10">
             <h3 className="font-headline font-bold text-xl md:text-2xl text-blue-950 flex items-center gap-3">
@@ -257,9 +252,9 @@ export default function StudentDashboard() {
           <div className="flex flex-col relative space-y-0">
             {stages.map((stage, index) => (
               <div key={index} className="flex group">
-                {/* Timeline Connector Column */}
+                {}
                 <div className="flex flex-col items-center mr-6 md:mr-8">
-                  {/* Icon Node */}
+                  {}
                   <div
                     className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center z-10 transition-all duration-300 border-2 ${
                       stage.active 
@@ -281,7 +276,7 @@ export default function StudentDashboard() {
                     </span>
                   </div>
                   
-                  {/* Vertical Line */}
+                  {}
                   {index !== stages.length - 1 && (
                     <div
                       className={`w-1.5 flex-1 my-1 transition-colors duration-500 rounded-full ${
@@ -292,7 +287,7 @@ export default function StudentDashboard() {
                   )}
                 </div>
 
-                {/* Label Column */}
+                {}
                 <div className={`flex flex-col pt-2 pb-12 ${index === stages.length - 1 ? "pb-0" : ""}`}>
                   <span className={`font-headline text-base md:text-xl transition-all duration-300 ${
                     stage.active 
@@ -317,9 +312,9 @@ export default function StudentDashboard() {
           </div>
         </section>
 
-        {/* Instructions Panel */}
+        {}
         <section className="bg-primary p-5 md:p-6 rounded-lg md:rounded-xl relative overflow-hidden">
-          {/* Decorative circle */}
+          {}
           <div className="absolute -right-8 md:-right-10 -bottom-8 md:-bottom-10 w-24 md:w-32 h-24 md:h-32 bg-primary-container rounded-full opacity-20"></div>
 
           <div className="relative z-10">
@@ -340,10 +335,10 @@ export default function StudentDashboard() {
           </div>
         </section>
 
-        {/* Removed Help and Hall Map section */}
+        {}
       </main>
 
-      {/* Removed Bottom Navigation Bar */}
+      {}
     </div>
   );
 }

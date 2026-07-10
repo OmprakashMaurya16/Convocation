@@ -65,6 +65,7 @@ const seedDatabase = async () => {
       name,
       studentId,
       department,
+      convocationYear: "2026",
       phone,
       email: "",
       company: "",
@@ -314,9 +315,9 @@ const seedDatabase = async () => {
     await Student.insertMany(students);
 
     console.log(
-      `Seeded ${students.length} students: ` +
+      `Seeded ${students.length} students (year 2026): ` +
         `${students.filter((s) => s.department === "ETRX").length} ETRX, ` +
-        `${students.filter((s) => s.department === "ETRX").length} ETRX`,
+        `${students.filter((s) => s.department === "EXTC").length} EXTC`,
     );
 
     process.exit(0);

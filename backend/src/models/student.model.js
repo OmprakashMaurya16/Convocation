@@ -18,6 +18,12 @@ const studentSchema = new mongoose.Schema(
       index: true,
     },
 
+    convocationYear: {
+      type: String,
+      index: true,
+      default: null,
+    },
+
     phone: String,
     company: String,
 
@@ -106,9 +112,9 @@ const studentSchema = new mongoose.Schema(
   },
 );
 
-// Pre-save hook: Ensure event object always exists and is properly structured
+
 studentSchema.pre("save", async function () {
-  // Ensure event object exists
+
   if (!this.event) {
     this.event = {
       sessionKey: null,
@@ -116,7 +122,7 @@ studentSchema.pre("save", async function () {
     };
   }
 
-  // Ensure event object has both required fields
+
   if (typeof this.event === "object") {
     if (!("sessionKey" in this.event)) {
       this.event.sessionKey = null;
@@ -126,7 +132,7 @@ studentSchema.pre("save", async function () {
     }
   }
 
-  // Ensure seat object exists
+
   if (!this.seat) {
     this.seat = {
       section: null,
@@ -134,7 +140,7 @@ studentSchema.pre("save", async function () {
     };
   }
 
-  // Ensure timestamps object exists
+
   if (!this.timestamps) {
     this.timestamps = {
       checkedInAt: null,
@@ -153,8 +159,8 @@ studentSchema.pre("save", async function () {
   );
 });
 
-// Ensure a seat can only be assigned to one student within a session.
-// Sparse index allows many students with no seat assigned.
+
+
 studentSchema.index(
   { "event.sessionKey": 1, "seat.section": 1, "seat.number": 1 },
   {
@@ -167,8 +173,8 @@ studentSchema.index(
   },
 );
 
-// Compound index for efficient session filtering with registration time check
-// This optimizes queries that filter by sessionKey AND registeredAt
+
+
 studentSchema.index(
   { "event.sessionKey": 1, "event.registeredAt": 1 },
   { sparse: true },

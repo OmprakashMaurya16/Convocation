@@ -29,6 +29,7 @@ const seedOneStudent = async () => {
       name: "Ankur Sharma",
       studentId: "21101B0036",
       department: "INFT",
+      convocationYear: "2026",
       phone: "",
       email: "",
       company: "",

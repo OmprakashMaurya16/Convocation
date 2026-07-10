@@ -1,4 +1,5 @@
 const express = require("express");
+const multer = require("multer");
 const { protect } = require("../middlewares/auth.middleware.js");
 const {
   getStats,
@@ -16,8 +17,29 @@ const {
   getAllSeats,
   searchStudents,
   createStudent,
+  bulkUploadStudents,
+  getAttendanceReport,
+  getConvocationYears,
 } = require("../controllers/admin.controller.js");
 const { allowRoles } = require("../middlewares/role.middleware.js");
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const allowed = [
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/vnd.ms-excel",
+      "application/pdf",
+    ];
+    const okByName = /\.(xlsx|xls|pdf)$/i.test(file.originalname);
+    if (allowed.includes(file.mimetype) || okByName) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only Excel (.xlsx/.xls) and PDF files are allowed"));
+    }
+  },
+});
 
 const router = express.Router();
 
@@ -48,5 +70,15 @@ router.get("/all-seats", protect, allowRoles("ADMIN"), getAllSeats);
 
 router.get("/students/search", protect, allowRoles("ADMIN"), searchStudents);
 router.post("/students", protect, allowRoles("ADMIN"), createStudent);
+router.post(
+  "/students/bulk-upload",
+  protect,
+  allowRoles("ADMIN"),
+  upload.single("file"),
+  bulkUploadStudents,
+);
+
+router.get("/students/attendance-report", protect, allowRoles("ADMIN"), getAttendanceReport);
+router.get("/students/convocation-years", protect, allowRoles("ADMIN"), getConvocationYears);
 
 module.exports = router;

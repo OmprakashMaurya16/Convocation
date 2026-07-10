@@ -44,12 +44,7 @@ const STATE_LABEL = {
   CANTEEN_TOKEN_ISSUED: "CANTEEN TOKEN ISSUED",
 };
 
-/**
- * Returns a human-friendly message for the scanner result card.
- * @param {string} scanType  - ENTRY | GOWN | RETURN | CANTEEN
- * @param {boolean} success  - whether the scan was accepted
- * @param {string|null} seat - formatted seat label, e.g. "A-12"
- */
+
 const getDynamicMessage = (scanType, success, seat) => {
   if (!success) return null;
 
@@ -63,7 +58,7 @@ const getDynamicMessage = (scanType, success, seat) => {
     case "RETURN":
       return "Your gown has been successfully returned. You may now proceed to the food counter.";
     case "CANTEEN":
-      return "Verification complete! 🎉 Please enjoy your meal and have a wonderful celebration.";
+      return "Verification complete!  Please enjoy your meal and have a wonderful celebration.";
     default:
       return null;
   }
@@ -90,10 +85,10 @@ export default function StaffScanner() {
   const normalizeScannedValue = (value) => {
     const raw = value.trim();
 
-    // Accept plain token, URL token (?qrToken=...), or last path segment token.
+
     if (!raw) return "";
 
-    // Support internal payloads like "<studentId>|A-12" (seat QR)
+
     if (raw.includes("|")) {
       const tokenPart = raw.split("|")[0]?.trim();
       if (tokenPart) return tokenPart;
@@ -247,13 +242,13 @@ export default function StaffScanner() {
     try {
       await scanner.stop();
     } catch {
-      // noop - scanner may already be stopped
+
     }
 
     try {
       await scanner.clear();
     } catch {
-      // noop - scanner cleanup best effort
+
     }
 
     cameraScannerRef.current = null;
@@ -263,7 +258,7 @@ export default function StaffScanner() {
   const startCamera = async () => {
     if (startingCamera || cameraActive) return;
 
-    // Hide the last scan result card when opening the camera.
+
     setShowResult(false);
     setStartingCamera(true);
     setCameraError("");
@@ -291,7 +286,7 @@ export default function StaffScanner() {
       };
 
       const onError = () => {
-        // Ignore per-frame decode errors while scanning live stream.
+
       };
 
       try {
@@ -302,7 +297,7 @@ export default function StaffScanner() {
           onError,
         );
       } catch {
-        // Fallback for browsers/devices that don't expose environment facing mode.
+
         const cameras = await Html5Qrcode.getCameras();
         if (!cameras?.length) {
           throw new Error("No camera found");
@@ -329,7 +324,7 @@ export default function StaffScanner() {
 
   return (
     <div className="min-h-screen flex flex-col bg-surface overflow-hidden">
-      {/* Top Bar */}
+      {}
       <ScannerTopBar
         title="Convocation Scanner"
         counter={currentMode.counter}
@@ -378,7 +373,7 @@ export default function StaffScanner() {
             ) : null}
           </div>
 
-          {/* Main Scanning Area */}
+          {}
           <div className="mt-4">
             <ScannerFrame
               centerContent={
@@ -416,7 +411,7 @@ export default function StaffScanner() {
         </div>
       </div>
 
-      {/* Bottom Navigation */}
+      {}
       <ScannerBottomNav
         activeMode={activeMode}
         setActiveMode={setActiveMode}
